@@ -42,7 +42,24 @@ import org.helios.dashkuj.domain.Widget;
 public interface Dashku {
 	
 	/** The URI template for retrieving all dashboards */
-	public static final String URI_DASHBOARDS = "/api/dashboards?=apiKey=%s";
+	public static final String URI_GET_DASHBOARDS = "/api/dashboards?apiKey=%s";
+	/** The URI (GET) template for retrieving a dashboard */
+	public static final String URI_GET_DASHBOARD = "/api/dashboards/%s?apiKey=%s";
+	/** The URI (POST) template for creating a dashboard */
+	public static final String URI_POST_CREATE_DASHBOARD = "/api/dashboards?apiKey=%s";
+	/** The URI (PUT) template for updating a dashboard */
+	public static final String URI_PUT_UPDATE_DASHBOARD = "/api/dashboards/%s?apiKey=%s";
+	/** The URI (DELETE) template for deleting a dashboard */
+	public static final String URI_DELETE_DELETE_DASHBOARD = "/api/dashboards/%s?apiKey=%s";
+	/** The URI (POST) template for creating a widget */
+	public static final String URI_POST_CREATE_WIDGET = "/api/dashboards/%s/widgets?apiKey=%s";
+	/** The URI (PUT) template for updating a widget */
+	public static final String URI_PUT_UPDATE_WIDGET = "/api/dashboards/%s/widgets/%s?apiKey=%s";
+	/** The URI (DELETE) template for deleting a widget */
+	public static final String URI_DELETE_DELETE_WIDGET = "/api/dashboards/%s/widgets/%s?apiKey=%s";
+	/** The URI (POST) template for transmitting to a widget */
+	public static final String URI_POST_TRANSMIT = "/api/transmission?apiKey=%s";
+	
 
 //	This is set in the Dashku impl ctor	
 //	/**

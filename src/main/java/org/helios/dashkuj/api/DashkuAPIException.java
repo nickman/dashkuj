@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.api;
 
+import org.helios.dashkuj.domain.Status;
+
 /**
  * <p>Title: DashkuAPIException</p>
  * <p>Description: Base class for runtime exceptions thrown from Dashku API calls</p> 
@@ -42,6 +44,25 @@ public class DashkuAPIException extends RuntimeException {
 	 */
 	public DashkuAPIException() {
 	}
+	
+	/**
+	 * Creates a new DashkuAPIException
+	 * @param apiStatus The API status returned by a failed API call
+	 */
+	public DashkuAPIException(Status apiStatus) {
+		super(apiStatus.toString());
+	}
+	
+	/**
+	 * Creates a new DashkuAPIException
+	 * @param apiStatus The API status returned by a failed API call
+	 * @param cause The exception's underlying cause
+	 */
+	public DashkuAPIException(Status apiStatus, Throwable cause) {
+		super(apiStatus.toString(), cause);
+	}
+	
+	
 
 	/**
 	 * Creates a new DashkuAPIException

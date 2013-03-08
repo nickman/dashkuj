@@ -24,10 +24,13 @@
  */
 package org.helios.dashkuj.domain;
 
+import org.helios.dashkuj.protocol.http.HTTPDashku;
+
 import com.github.jmkgreen.morphia.Datastore;
 import com.github.jmkgreen.morphia.Morphia;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.mongodb.Mongo;
 
 /**
@@ -65,10 +68,24 @@ public class CL {
 				log("====================");
 				log(gson.toJson(db));
 			}
-		
+			
+			HTTPDashku http = new HTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
+			JsonObject transmission = new JsonObject();
+			JsonObject colours = new JsonObject();
+			transmission.addProperty("amount", 30);
+			transmission.addProperty("total", 100);
+			colours.addProperty("amount", "#51FF00");
+			colours.addProperty("total", "#FF002B");
+			transmission.add("colours", colours);
+			
+			http.transmit("5138a957124965c50600003d", transmission);
+//			Collection<Dashboard> dboards = http.getDashboards();
+//			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
+//			log(dboards.iterator().next());
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}
+		System.exit(1);
 
 	}
 	

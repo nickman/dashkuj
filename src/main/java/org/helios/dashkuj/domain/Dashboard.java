@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -32,6 +34,7 @@ import com.github.jmkgreen.morphia.annotations.Entity;
 import com.github.jmkgreen.morphia.annotations.Id;
 import com.github.jmkgreen.morphia.annotations.Property;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * <p>Title: Dashboard</p>
@@ -44,6 +47,8 @@ import com.google.gson.annotations.SerializedName;
 public class Dashboard extends  AbstractDashkuDomainObject {
 	/** The dashku unique identifier for this object */
 	@Id()
+	@Property("_id")
+	@SerializedName("_id")
 	protected String id = null;
 	
 	/** The screenwidth definition for this dashboard */
@@ -58,6 +63,12 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 //	protected Map<String, Widget> widgets = new ConcurrentHashMap<String, Widget>();
 	@Embedded("widgets")
 	protected final List<Widget> widgets = new CopyOnWriteArrayList<Widget>();
+	
+	/** The type of a collection of dashboards */
+	public static final Type DASHBOARD_COLLECTION_TYPE = new TypeToken<Collection<Dashboard>>(){/* No Op */}.getType();
+	/** The type of a collection of widgets */
+	public static final Type WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */}.getType();
+
 	
 	/**
 	 * {@inheritDoc}

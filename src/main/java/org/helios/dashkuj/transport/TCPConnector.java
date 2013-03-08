@@ -40,7 +40,12 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpClientCodec;
+import org.jboss.netty.handler.logging.LoggingHandler;
+import org.jboss.netty.logging.InternalLogLevel;
+import org.jboss.netty.logging.InternalLoggerFactory;
+import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +62,12 @@ public class TCPConnector implements ChannelPipelineFactory {
 	private static volatile TCPConnector instance = null;
 	/** Singleton instance ctor lock */
 	private static final Object lock = new Object();
+	
+	protected static final LoggingHandler loggingHandler = new LoggingHandler("TCPConnector", InternalLogLevel.WARN, false);
+	
+	static {
+		 InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
+	}
 	
 	
 	/**
@@ -131,7 +142,7 @@ public class TCPConnector implements ChannelPipelineFactory {
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = Channels.pipeline();
-		pipeline.addLast("codec", new HttpClientCodec());
+		pipeline.addLast("logging", loggingHandler);
 		return pipeline;
 	}
 	
