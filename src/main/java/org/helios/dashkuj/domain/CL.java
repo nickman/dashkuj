@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.util.Collection;
+
 import org.helios.dashkuj.protocol.http.HTTPDashku;
 
 import com.github.jmkgreen.morphia.Datastore;
@@ -56,32 +58,46 @@ public class CL {
 	public static void main(String[] args) {
 		log("CL Test");
 		try {
-			Mongo mongo = new Mongo("dashku", 27017);
-			Morphia morphia = new Morphia();
-			morphia.map(Dashboard.class);
-			Datastore ds = morphia.createDatastore(mongo, "dashku_development");
+//			Mongo mongo = new Mongo("dashku", 27017);
+//			Morphia morphia = new Morphia();
+//			morphia.map(Dashboard.class);
+//			Datastore ds = morphia.createDatastore(mongo, "dashku_development");
+//			
+//			Gson gson = new GsonBuilder().create();
+//						
+//			for(Dashboard db : ds.find(Dashboard.class).asList()) {
+//				log(db);
+//				log("====================");
+//				log(gson.toJson(db));
+//			}
 			
-			Gson gson = new GsonBuilder().create();
-						
-			for(Dashboard db : ds.find(Dashboard.class).asList()) {
-				log(db);
-				log("====================");
-				log(gson.toJson(db));
-			}
+			HTTPDashku http = new HTTPDashku("5fd3eafd-0393-4db1-8bd6-97817bbe219a", "dashku", 3000);
+			//curl -H "Accept: application/json" "http://dashku:3000/api/dashboards?apiKey=5fd3eafd-0393-4db1-8bd6-97817bbe219a"
+			http.setTimeout(60000);
+//			JsonObject transmission = new JsonObject();
+//			JsonObject colours = new JsonObject();
+//			transmission.addProperty("amount", 30);
+//			transmission.addProperty("total", 100);
+//			colours.addProperty("amount", "#51FF00");
+//			colours.addProperty("total", "#FF002B");
+//			transmission.add("colours", colours);
+//			
+//			http.transmit("5138a957124965c50600003d", transmission);
+			Collection<Dashboard> dboards = http.getDashboards();
+			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
+			Dashboard dboard = dboards.iterator().next();
+			log(dboard);
+			dboard = http.getDashboard(dboard.getId());
+			log("Retrieved [" + dboard.getName() + "] Dashboard Instance");
+			log(dboard);
+			Widget widget = dboard.widgets.get(0);
+			log("Updating Widget [" + widget.getName() + "]");
+			widget.setHeight(360);
+			widget.setWidth(400);
+			Widget updatedWidget = http.updateWidget(dboard.getId(), widget);
+			log("Updated Widget:\n" + updatedWidget);
 			
-			HTTPDashku http = new HTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
-			JsonObject transmission = new JsonObject();
-			JsonObject colours = new JsonObject();
-			transmission.addProperty("amount", 30);
-			transmission.addProperty("total", 100);
-			colours.addProperty("amount", "#51FF00");
-			colours.addProperty("total", "#FF002B");
-			transmission.add("colours", colours);
 			
-			http.transmit("5138a957124965c50600003d", transmission);
-//			Collection<Dashboard> dboards = http.getDashboards();
-//			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
-//			log(dboards.iterator().next());
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}

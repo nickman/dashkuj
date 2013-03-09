@@ -63,12 +63,20 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 //	protected Map<String, Widget> widgets = new ConcurrentHashMap<String, Widget>();
 	@Embedded("widgets")
 	protected final List<Widget> widgets = new CopyOnWriteArrayList<Widget>();
-	
-	/** The type of a collection of dashboards */
-	public static final Type DASHBOARD_COLLECTION_TYPE = new TypeToken<Collection<Dashboard>>(){/* No Op */}.getType();
-	/** The type of a collection of widgets */
-	public static final Type WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */}.getType();
 
+	/** The type of a dashboard */
+	public static final TypeToken<Dashboard> DASHBOARD_TYPE = new TypeToken<Dashboard>(){/* No Op */};	
+	/** The type of a collection of dashboards */
+	public static final TypeToken<Collection<Dashboard>> DASHBOARD_COLLECTION_TYPE = new TypeToken<Collection<Dashboard>>(){/* No Op */};
+	/** The type of a collection of widgets */
+	public static final TypeToken<Collection<Widget>> WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */};
+	/** The type of a widget */
+	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
+
+	
+	public static void main(String[] args) {
+		System.out.println("DASHBOARD_COLLECTION_TYPE:" + DASHBOARD_COLLECTION_TYPE.getClass().getName() + "/" + DASHBOARD_COLLECTION_TYPE);
+	}
 	
 	/**
 	 * {@inheritDoc}

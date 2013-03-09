@@ -149,8 +149,8 @@ public class AbstractDashku implements Dashku {
 	 * @see org.helios.dashkuj.api.Dashku#updateWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
 	 */
 	@Override
-	public void updateWidget(CharSequence dashboardId, Widget widget) {
-		// TODO Auto-generated method stub
+	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
+		return null;
 		
 	}
 

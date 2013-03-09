@@ -131,8 +131,9 @@ public interface Dashku {
 	 * Updates an existing widget in the Dashku server
 	 * @param dashboardId The id of the dashboard that this widget belongs to 
 	 * @param widget The widget to update
+	 * @return the updated widget
 	 */
-	public void updateWidget(CharSequence dashboardId, Widget widget);
+	public Widget updateWidget(CharSequence dashboardId, Widget widget);
 	
 	/**
 	 * Deletes an existing widget from the Dashku server

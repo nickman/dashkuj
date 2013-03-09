@@ -40,6 +40,10 @@ public class Status {
 	/** The status message */
 	@SerializedName("status")
 	protected String message;
+	/** The status reason */
+	@SerializedName("reason")
+	protected String reason;
+	
 	/** The (HTTP) response code */
 	protected HttpResponseStatus responseCode = HttpResponseStatus.OK; 
 	
@@ -60,6 +64,15 @@ public class Status {
 	public String getMessage() {
 		return message;
 	}
+	
+	/**
+	 * Returns the status reason
+	 * @return the status reason
+	 */
+	public String getReason() {
+		return reason;
+	}
+	
 
 	/**
 	 * Returns the (HTTP) status code
@@ -69,9 +82,24 @@ public class Status {
 		return responseCode;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return String.format("Status [message=%s, code=%s]", message, responseCode);
+		StringBuilder b = new StringBuilder("Status [");
+		if(message!=null) {
+			b.append("message:").append(message).append(" ");
+		}
+		if(reason!=null) {
+			b.append("reason:").append(reason).append(" ");
+		}
+		if(responseCode!=null) {
+			b.append("rcode:").append(responseCode).append(" ");
+		}
+		String status = b.toString().trim();		
+		return status + "]";
 	}
 	
 	
