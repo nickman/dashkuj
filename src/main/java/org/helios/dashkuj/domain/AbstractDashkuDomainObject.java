@@ -24,15 +24,17 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
-import com.github.jmkgreen.morphia.annotations.Id;
 import com.github.jmkgreen.morphia.annotations.Property;
 import com.google.gson.annotations.SerializedName;
 
 /**
  * <p>Title: AbstractDashkuDomainObject</p>
- * <p>Description: </p> 
+ * <p>Description: Common base class for dashboards and widgets</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.dashkuj.domain.AbstractDashkuDomainObject</code></p>
@@ -55,6 +57,9 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	@Property("name")
 	@SerializedName("name")
 	protected String name = null;
+	
+	/** The names of the fields that are considered "dirty" */
+	protected final Set<String> dirtyFields = new CopyOnWriteArraySet<String>();
 
 	/**
 	 * Creates a new AbstractDashkuDomainObject
@@ -103,6 +108,7 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	 */
 	@Override
 	public void setCss(String css) {
+		dirty(this.css, css, "css");
 		this.css = css;
 	}
 
@@ -121,7 +127,47 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	 */
 	@Override
 	public void setName(String name) {
+		dirty(this.name, name, "name");
 		this.name = name;
+	}
+	
+	
+	/**
+	 * Conditionally adds the field name to the dirty fields if the before and after values are not the same
+	 * @param before The value of the field before a setter is called
+	 * @param after The value of the field after a setter is called
+	 * @param fieldName the field name
+	 */
+	protected void dirty(Object before, Object after, String fieldName) {
+		if(before==null && after==null) return;
+		if(before==null) dirtyFields.add(fieldName);
+		else {
+			if(!before.equals(after)) dirtyFields.add(fieldName);
+		}
+	}
+	
+	/**
+	 * Indicates if the object has dirty fields
+	 * @return true if the object has dirty fields
+	 */
+	public boolean isDirty() {
+		return !dirtyFields.isEmpty();
+	}
+	
+	/**
+	 * Returns the dirty field names
+	 * @return the dirty field names
+	 */
+	public Set<String> getDirtyFieldNames() {
+		return Collections.unmodifiableSet(dirtyFields);
+	}
+	
+	
+	/**
+	 * Clears the dirty fields.
+	 */
+	public void clearDirtyFields() {
+		dirtyFields.clear();
 	}
 
 }

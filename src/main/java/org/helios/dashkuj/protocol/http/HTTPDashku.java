@@ -29,14 +29,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.helios.dashkuj.api.AbstractDashku;
 import org.helios.dashkuj.api.DashkuAPIException;
+import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.Widget;
 import org.helios.dashkuj.handlers.DashkuDecoder;
 import org.helios.dashkuj.handlers.DashkuEncoder;
+import org.helios.dashkuj.json.GsonFactory;
 import org.helios.dashkuj.transport.TCPConnector;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -52,10 +56,13 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.DownstreamMessageEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
+import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
@@ -79,9 +86,10 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	protected final Channel channel;
 	/** The request timeout in ms. */
 	protected long timeout = DEFAULT_REQUEST_TIMEOUT;
-	
-	 /** Synchronous invication handler */
-	protected final BlockingReadHandler<Object> synchReader = new BlockingReadHandler<Object>();
+	/** Synchronous invocation handler queue */
+	protected final BlockingQueue<ChannelEvent> synchReaderQueue = new ArrayBlockingQueue<ChannelEvent>(100, false); 
+	 /** Synchronous invocation handler */
+	protected final BlockingReadHandler<Object> synchReader = new BlockingReadHandler<Object>(synchReaderQueue);
 	
 	/** Shared execution handler */
 	private static final ExecutionHandler executionHandler = new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(5, 1048576, 1048576));
@@ -118,7 +126,12 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
 	/** The name of the handler after which domain handlers should be inserted */
-	static final String PIPELINE_INSERT = "codec";
+	static final String PIPELINE_INSERT = "execution";
+	
+	/** An HTTP codec */
+	protected static final HttpClientCodec httpClientCodec = new HttpClientCodec(16384, 16384, 16384);
+	/** An HTTP chunk aggregator */
+	protected static final HttpChunkAggregator httpChunkAggregator = new HttpChunkAggregator(1048576);
 	
 	/**
 	 * Creates a new HTTPDashku
@@ -130,10 +143,11 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 		super(apiKey);
 		channel = TCPConnector.getInstance().getSynchChannel(host, port);
 		ChannelPipeline pipeline = channel.getPipeline();
-		pipeline.addLast(PIPELINE_INSERT, new HttpClientCodec()); 			// UP/DOWN		
+		pipeline.addLast("http-codec", httpClientCodec); 					// UP/DOWN
+		pipeline.addLast("aggregator", httpChunkAggregator);				// UP ONLY
+		pipeline.addLast("httpRequestBuilder", this);						// DOWN ONLY
 		//-- domain DECODER here --//										// UP ONLY
 		//-- domain ENCODER here --//										// DOWN ONLY
-		pipeline.addLast("httpRequestBuilder", this);						// DOWN ONLY
 		pipeline.addLast("execution", executionHandler);					// UP/DOWN
 		pipeline.addLast("synchreader", synchReader);						// UP ONLY		
 	}
@@ -147,8 +161,9 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	protected String[] installDomainHandlers(TypeToken<?> type, ChannelPipeline pipeline) {
 		ChannelHandler[] handlers = DOMAIN_HANDLERS.get(type);
 		String[] names = new String[]{type.toString() + "-decoder", type.toString() + "-encoder"}; 
-		pipeline.addAfter(PIPELINE_INSERT, names[1], handlers[1]);
-		pipeline.addAfter(PIPELINE_INSERT, names[0], handlers[0]);		
+		
+		pipeline.addBefore(PIPELINE_INSERT, names[1], handlers[1]);
+		pipeline.addBefore(PIPELINE_INSERT, names[0], handlers[0]);		
 		log.debug("Installed Domain Handlers for {}", Arrays.toString(names));
 		return names;
 	}
@@ -170,8 +185,10 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	public Collection<Dashboard> getDashboards() {
-		return (Collection<Dashboard>) apiCall(Dashboard.DASHBOARD_COLLECTION_TYPE, channel, HttpMethod.GET, "getDashboards", null, URI_GET_DASHBOARDS, apiKey);
+	public Collection<Dashboard> getDashboards() {		
+		synchReaderQueue.clear();
+		Object response = apiCall(Dashboard.DASHBOARD_COLLECTION_TYPE, channel, HttpMethod.GET, "getDashboards", null, URI_GET_DASHBOARDS, apiKey);		
+		return (Collection<Dashboard>)response;
 	}	
 	
 	/**
@@ -189,8 +206,47 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	 */
 	@Override
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
-		return (Widget) apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", widget, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
-	}	
+		if(!widget.isDirty()) return widget;
+		String diffPost = buildDirtyUpdatePost(widget);
+		log.info("Sending Widget Diffs:[{}]", diffPost);
+		return (Widget) apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
+/*		DefaultHttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.PUT, String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey));
+		httpRequest.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");
+		byte[] diffContent = diffPost.getBytes();
+//		int contentLength = diffContent.length;
+		HttpHeaders.setContentLength(httpRequest, diffContent.length);
+//		ChannelBuffer cb = ChannelBuffers.wrappedBuffer(diffContent);
+//		cb.writeBytes(diffContent);
+		httpRequest.setContent(ChannelBuffers.wrappedBuffer(diffContent));
+		channel.write(httpRequest);				
+		try {
+			return (Widget)synchReader.readEvent(timeout, TimeUnit.MILLISECONDS);
+		} catch (BlockingReadTimeoutException e) {
+			throw new DashkuAPIException("Interrupted while waiting on response", e);
+		} catch (InterruptedException e) {
+			throw new DashkuAPIException("Interrupted while waiting on response", e);
+		}
+*/	}
+	
+	/**
+	 * Builds a post body to send the dirty fields for the passed domain object
+	 * @param domainObject the domain object to generate the diff post for
+	 * @return the diff post body
+	 */
+	protected String buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
+		StringBuilder b = new StringBuilder();
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();
+		JsonObject diffs = new JsonObject();
+		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
+			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
+			b.append(dirtyFieldName).append("=").append(jsonDomainObject.get(dirtyFieldName)).append("&");
+		}
+		//return b.toString();
+		//return b.deleteCharAt(b.length()-1).toString();
+		return diffs.toString();
+		
+	}
+	
 
 	/**
 	 * Generic API invoker
@@ -243,7 +299,15 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 		ChannelBuffer cb = ChannelBuffers.directBuffer(contentLength);
 		cb.writeBytes(jsonContent);
 		httpRequest.setContent(cb);
-		channel.write(httpRequest);				
+		channel.write(httpRequest);
+		Object result;
+		try {
+			result = synchReader.read(timeout, TimeUnit.MILLISECONDS);
+			if(result==null) throw new DashkuAPIException("transmit call returned null", new Throwable());
+			log.info("Transmit Result [{}]", result);
+		} catch (Exception e) {
+			throw new DashkuAPIException("transmit call returned null", e);
+		}
 	}
 
 
@@ -280,7 +344,7 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 						}
 					}
 				});
-				ctx.sendDownstream(new DownstreamMessageEvent(channel, cf, httpRequest, me.getRemoteAddress()));
+				ctx.sendDownstream(new DownstreamMessageEvent(channel, cf, request, me.getRemoteAddress()));
 				return;
 			}
 		}

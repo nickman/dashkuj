@@ -25,15 +25,11 @@
 package org.helios.dashkuj.domain;
 
 import java.util.Collection;
+import java.util.Random;
 
 import org.helios.dashkuj.protocol.http.HTTPDashku;
 
-import com.github.jmkgreen.morphia.Datastore;
-import com.github.jmkgreen.morphia.Morphia;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.mongodb.Mongo;
 
 /**
  * <p>Title: CL</p>
@@ -74,15 +70,15 @@ public class CL {
 			HTTPDashku http = new HTTPDashku("5fd3eafd-0393-4db1-8bd6-97817bbe219a", "dashku", 3000);
 			//curl -H "Accept: application/json" "http://dashku:3000/api/dashboards?apiKey=5fd3eafd-0393-4db1-8bd6-97817bbe219a"
 			http.setTimeout(60000);
-//			JsonObject transmission = new JsonObject();
-//			JsonObject colours = new JsonObject();
-//			transmission.addProperty("amount", 30);
-//			transmission.addProperty("total", 100);
-//			colours.addProperty("amount", "#51FF00");
-//			colours.addProperty("total", "#FF002B");
-//			transmission.add("colours", colours);
-//			
-//			http.transmit("5138a957124965c50600003d", transmission);
+ 			JsonObject transmission = new JsonObject();
+			JsonObject colours = new JsonObject();
+			transmission.addProperty("amount", 50);
+			transmission.addProperty("total", 100);
+			colours.addProperty("amount", "#51FF00");
+			colours.addProperty("total", "#FF002B");
+			transmission.add("colours", colours);
+			
+			http.transmit("513b768ea03ed86f05000058", transmission);
 			Collection<Dashboard> dboards = http.getDashboards();
 			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
 			Dashboard dboard = dboards.iterator().next();
@@ -92,11 +88,21 @@ public class CL {
 			log(dboard);
 			Widget widget = dboard.widgets.get(0);
 			log("Updating Widget [" + widget.getName() + "]");
-			widget.setHeight(360);
-			widget.setWidth(400);
+			Random r = new Random(System.currentTimeMillis());
+			widget.setHeight(100 + Math.abs(r.nextInt(100)));
+			widget.setWidth(100 + Math.abs(r.nextInt(100))*2);	
+			widget.setName("FooBar" + Math.abs(r.nextInt(100)) + "/" + Math.abs(r.nextInt(100)));
 			Widget updatedWidget = http.updateWidget(dboard.getId(), widget);
 			log("Updated Widget:\n" + updatedWidget);
 			
+			
+/*			for(int i = 0; i < 100; i++) {
+				widget.setHeight(100 + Math.abs(r.nextInt(100)));
+				widget.setWidth(100 + Math.abs(r.nextInt(100)));			
+				http.updateWidget(dboard.getId(), widget);
+				Thread.sleep(500);
+			}
+*/			
 			
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);

@@ -63,7 +63,7 @@ public class TCPConnector implements ChannelPipelineFactory {
 	/** Singleton instance ctor lock */
 	private static final Object lock = new Object();
 	
-	protected static final LoggingHandler loggingHandler = new LoggingHandler("TCPConnector", InternalLogLevel.WARN, true);
+	protected static final LoggingHandler loggingHandler = new LoggingHandler("TCPConnector", InternalLogLevel.DEBUG, false);
 	
 	static {
 		 InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());

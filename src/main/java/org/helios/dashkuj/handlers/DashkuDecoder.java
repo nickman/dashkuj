@@ -68,11 +68,12 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 	
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
+	private static final DirectChannelBufferFactory bufferFactory = new DirectChannelBufferFactory();
 
 	
 	/** An accumulating channel buffer for reading chunked http content */
 	protected static final ChannelLocal<ChannelBuffer> decodingState = new ChannelLocal<ChannelBuffer>(true) {
-		private final DirectChannelBufferFactory bufferFactory = new DirectChannelBufferFactory();
 		@Override
 		protected ChannelBuffer initialValue(Channel channel) {
 			return ChannelBuffers.dynamicBuffer(2048, bufferFactory);
@@ -87,6 +88,17 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 	};
 	/** Retains the http response code while unchunking */
 	protected static final ChannelLocal<HttpResponseStatus> responseStatus = new ChannelLocal<HttpResponseStatus>(true);
+	
+	/**
+	 * Resets all the channel's locals
+	 * @param channel the channel to reset
+	 */
+	public static void reset(Channel channel) {
+		responseStatus.remove(channel);
+		readingChunks.remove(channel);
+		decodingState.remove(channel);
+	}
+	
 	
 	/**
 	 * Creates a new DashkuDecoder
@@ -118,7 +130,13 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 	 * @see org.jboss.netty.handler.codec.oneone.OneToOneDecoder#decode(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.Channel, java.lang.Object)
 	 */
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {		
+		Channel channel = event.getChannel();
+		HttpResponse response = (HttpResponse)event.getMessage();
+		ctx.sendUpstream(new UpstreamMessageEvent(channel, decodeDomainObject(response.getContent(), response.getStatus()), event.getRemoteAddress()));
+	}
+	
+/*	public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {		
 		Channel channel = event.getChannel();
 		Object message = event.getMessage();
 		if(!readingChunks.get(channel)) {
@@ -128,10 +146,10 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 				readingChunks.set(channel, true);
 				responseStatus.set(channel, response.getStatus());
 				log.info("Started Chunking");
-			} else {
+			} else {				
 				ChannelBuffer buffer = decodingState.remove(channel);	
-				readingChunks.remove(channel);
 				buffer.writeBytes(response.getContent());
+				reset(channel);
 				ctx.sendUpstream(new UpstreamMessageEvent(channel, decodeDomainObject(buffer, response.getStatus()), event.getRemoteAddress()));
 			}			
 		} else {
@@ -145,10 +163,9 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 			} else {
 				decodingState.get(channel).writeBytes(chunk.getContent());	
 			}
-				
 		}
 	}
-	
+*/	
 	/**
 	 * Reads the domain object or exception from the http response content
 	 * @param content The http response content

@@ -43,6 +43,8 @@ public class GsonFactory {
 	
 	/** The configured builder */
 	private final GsonBuilder builder;
+	/** The configured printer */
+	private final GsonBuilder printer;
 	
 	/** The timestamp format used by dashku */
 	public static final String JS_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -66,7 +68,8 @@ public class GsonFactory {
 	 * Creates a new GsonFactory
 	 */
 	private GsonFactory() {
-		builder = new GsonBuilder().setDateFormat(JS_DATE_FORMAT);
+		builder = new GsonBuilder().setDateFormat(JS_DATE_FORMAT).serializeNulls();
+		printer = new GsonBuilder().setDateFormat(JS_DATE_FORMAT).serializeNulls().setPrettyPrinting();
 	}
 	
 	/**
@@ -74,6 +77,14 @@ public class GsonFactory {
 	 * @return a new {@link Gson} instance
 	 */
 	public Gson newGson() {
+		return builder.create();
+	}
+	
+	/**
+	 * Returns a pretty printing Gson
+	 * @return a pretty printing Gson
+	 */
+	public Gson printer() {
 		return builder.create();
 	}
 	

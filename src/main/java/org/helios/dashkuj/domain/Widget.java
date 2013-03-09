@@ -122,7 +122,7 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's height
 	 * @return the height
 	 */
 	public int getHeight() {
@@ -132,17 +132,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's height
 	 * @param height the height to set
 	 */
 	public void setHeight(int height) {
+		dirty(this.height, height, "height");
 		this.height = height;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's width
 	 * @return the width
 	 */
 	public int getWidth() {
@@ -152,17 +153,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's width
 	 * @param width the width to set
 	 */
 	public void setWidth(int width) {
+		dirty(this.width, width, "width");
 		this.width = width;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's json
 	 * @return the json
 	 */
 	public String getJson() {
@@ -172,17 +174,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's json
 	 * @param json the json to set
 	 */
 	public void setJson(String json) {
+		dirty(this.json, json, "json");
 		this.json = json;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's script type
 	 * @return the scriptType
 	 */
 	public String getScriptType() {
@@ -192,17 +195,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's script type
 	 * @param scriptType the scriptType to set
 	 */
 	public void setScriptType(String scriptType) {
+		dirty(this.scriptType, scriptType, "scriptType");
 		this.scriptType = scriptType;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's script
 	 * @return the script
 	 */
 	public String getScript() {
@@ -212,17 +216,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's script
 	 * @param script the script to set
 	 */
 	public void setScript(String script) {
+		dirty(this.script, script, "script");
 		this.script = script;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's css
 	 * @return the scopedCss
 	 */
 	public String getScopedCss() {
@@ -232,17 +237,18 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's css
 	 * @param scopedCss the scopedCss to set
 	 */
 	public void setScopedCss(String scopedCss) {
+		dirty(this.scopedCss, scopedCss, "scopedCss");
 		this.scopedCss = scopedCss;
 	}
 
 
 
 	/**
-	 * Returns 
+	 * Returns the widget's html 
 	 * @return the html
 	 */
 	public String getHtml() {
@@ -252,10 +258,11 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 	/**
-	 * Sets 
+	 * Sets the widget's html
 	 * @param html the html to set
 	 */
 	public void setHtml(String html) {
+		dirty(this.html, html, "html");
 		this.html = html;
 	}
 	

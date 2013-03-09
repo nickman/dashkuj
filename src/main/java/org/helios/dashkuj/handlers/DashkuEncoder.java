@@ -26,8 +26,10 @@ package org.helios.dashkuj.handlers;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.net.URLEncoder;
 
 import org.helios.dashkuj.json.GsonFactory;
+import org.helios.dashkuj.protocol.http.DashkuHttpRequest;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandler;
@@ -37,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -79,9 +83,26 @@ public class DashkuEncoder<T> extends OneToOneEncoder {
 	 */
 	@Override
 	protected Object encode(ChannelHandlerContext ctx, Channel channel, Object message) throws Exception {
-		if(type.getType().equals(message)) {
-			Gson gson = GsonFactory.getInstance().newGson();
+		Gson gson = GsonFactory.getInstance().newGson();
+		if(type.getType().equals(message)) {			
 			return ChannelBuffers.wrappedBuffer(gson.toJson(message, type.getType()).getBytes());
+		} else if(message instanceof DashkuHttpRequest) {
+			DashkuHttpRequest dashkuRequest = (DashkuHttpRequest)message; 
+			Object payload = dashkuRequest.getPayload();
+			if(payload==null) return dashkuRequest.getHttpRequest();
+			if(domainType.isInstance(payload)) {
+				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(gson.toJson(message, domainType).getBytes()));
+				return dashkuRequest.getHttpRequest();
+			} else if(payload instanceof JsonObject) {
+				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(payload.toString().getBytes()));
+				return dashkuRequest.getHttpRequest();
+			} else if(payload instanceof CharSequence) {
+				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(payload.toString().getBytes()));
+				return dashkuRequest.getHttpRequest();				
+			}
+		} else if(message instanceof JsonObject) {			
+			log.info("Sending Domain Object Update [\n{}\n]", message);
+			return ChannelBuffers.wrappedBuffer(gson.toJson((JsonElement)message).getBytes());
 		}
 		return message;
 	}

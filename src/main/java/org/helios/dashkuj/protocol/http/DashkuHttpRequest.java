@@ -26,7 +26,11 @@ package org.helios.dashkuj.protocol.http;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpVersion;
@@ -47,7 +51,7 @@ public class DashkuHttpRequest {
 	/** The build HTTP request URI */
 	protected final String uri;
 	/** The optional request payload */
-	protected final Object payload;
+	protected Object payload;
 	/** The bufferized payload */
 	protected ChannelBuffer channelBuffer = ChannelBuffers.EMPTY_BUFFER;
 	
@@ -85,6 +89,13 @@ public class DashkuHttpRequest {
 	 */
 	public HttpRequest getHttpRequest() {
 		HttpRequest req = new DefaultHttpRequest(version, method, uri);
+		req.addHeader(HttpHeaders.Names.ACCEPT, "application/json");	
+		int contentLength = channelBuffer.readableBytes();
+		if(contentLength>0) {					
+			req.setContent(channelBuffer);
+			req.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");			
+			HttpHeaders.setContentLength(req, contentLength);
+		} 
 		
 		return req;
 	}
@@ -95,6 +106,7 @@ public class DashkuHttpRequest {
 	 */
 	public void setChannelBuffer(ChannelBuffer buffer) {
 		this.channelBuffer = buffer;
+		this.payload = null;
 	}
 	
 	/**
