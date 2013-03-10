@@ -84,6 +84,19 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	    this.screenWidth = dashboard.screenWidth;
 	    this.userId = dashboard.userId;
 	}
+	
+	/**
+	 * Updates this dashboard from another transient dashboard
+	 * @param dashboard the dashboard to update from
+	 * @return this dashboard
+	 */
+	public Dashboard updateFrom(Dashboard dashboard) {
+		super.updateFrom(dashboard);
+	    this.id = dashboard.id;
+	    this.screenWidth = dashboard.screenWidth;
+	    this.userId = dashboard.userId;
+	    return this;
+	}
 
 
 

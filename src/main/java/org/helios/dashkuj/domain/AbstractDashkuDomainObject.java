@@ -67,11 +67,22 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	 * Copy Constructor
 	 * @param abstractDashkuDomainObject a <code>AbstractDashkuDomainObject</code> object
 	 */
-	public AbstractDashkuDomainObject(AbstractDashkuDomainObject abstractDashkuDomainObject) {
+	protected AbstractDashkuDomainObject(AbstractDashkuDomainObject abstractDashkuDomainObject) {
 	    this.created = abstractDashkuDomainObject.created;
 	    this.lastUpdated = abstractDashkuDomainObject.lastUpdated;
 	    this.css = abstractDashkuDomainObject.css;
 	    this.name = abstractDashkuDomainObject.name;
+	}
+	
+	/**
+	 * Updates the values in this domain object from another domain object
+	 * @param abstractDashkuDomainObject the domain object to update from
+	 */
+	protected void updateFrom(AbstractDashkuDomainObject abstractDashkuDomainObject) {
+	    this.created = abstractDashkuDomainObject.created;
+	    this.lastUpdated = abstractDashkuDomainObject.lastUpdated;
+	    this.css = abstractDashkuDomainObject.css;
+	    this.name = abstractDashkuDomainObject.name;		
 	}
 
 	/**

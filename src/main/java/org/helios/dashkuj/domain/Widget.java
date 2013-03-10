@@ -92,6 +92,24 @@ public class Widget extends AbstractDashkuDomainObject {
 	    this.scopedCss = widget.scopedCss;
 	    this.html = widget.html;
 	}
+	
+	/**
+	 * Updates this widget from another transient widget
+	 * @param widget the widget to update from
+	 * @return this widget
+	 */
+	public Widget updateFrom(Widget widget) {
+		super.updateFrom(widget);
+	    this.id = widget.id;
+	    this.height = widget.height;
+	    this.width = widget.width;
+	    this.json = widget.json;
+	    this.scriptType = widget.scriptType;
+	    this.script = widget.script;
+	    this.scopedCss = widget.scopedCss;
+	    this.html = widget.html;
+	    return this;
+	}
 
 	/**
 	 * {@inheritDoc}
