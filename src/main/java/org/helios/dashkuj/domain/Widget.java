@@ -239,9 +239,9 @@ public class Widget extends AbstractDashkuDomainObject {
 	 * Sets the widget's script type
 	 * @param scriptType the scriptType to set
 	 */
-	public void setScriptType(String scriptType) {
-		dirty(this.scriptType, scriptType, "scriptType");
-		this.scriptType = scriptType;
+	public void setScriptType(ScriptType scriptType) {
+		dirty(this.scriptType, scriptType.name(), "scriptType");
+		this.scriptType = scriptType.name();
 	}
 
 
@@ -277,15 +277,15 @@ public class Widget extends AbstractDashkuDomainObject {
 
 
 
-	/**
-	 * Sets the widget's css
-	 * @param scopedCss the scopedCss to set
-	 */
-	public void setScopedCss(String scopedCss) {
+//	/**
+//	 * Sets the widget's css
+//	 * @param scopedCss the scopedCss to set
+//	 */
+/*	public void setScopedCss(String scopedCss) {
 		dirty(this.scopedCss, scopedCss, "scopedCss");
 		this.scopedCss = scopedCss;
 	}
-
+*/
 
 
 	/**

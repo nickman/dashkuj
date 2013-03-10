@@ -24,7 +24,6 @@
  */
 package org.helios.dashkuj.api;
 
-import java.net.URL;
 import java.util.Collection;
 
 import org.helios.dashkuj.domain.Dashboard;
@@ -71,7 +70,7 @@ public interface Dashku {
 	
 	
 	/**
-	 * Retrieves all of the dashboards associated with the set Dashku API key
+	 * Retrieves all of the dashboards associated WIDGETwith the set Dashku API key
 	 * @return a collection of dashboards
 	 */
 	public Collection<Dashboard> getDashboards();
@@ -84,7 +83,8 @@ public interface Dashku {
 	public Dashboard getDashboard(CharSequence dashboardId);
 	
 	/**
-	 * Creates a new dashboard in the Dashku server
+	 * Creates a new dashboard in the Dashku server.
+	 * <p>Note that currently Dashku ignores the <b><code>css</code></b> and <b><code>screenWidth</code></b> attributes. See Dashku Issue <a href="https://github.com/Anephenix/dashku/issues/16">16</a>.</p>
 	 * @param dashboard the dashboard domain model to create
 	 * @return The id of the created dashboard
 	 */
@@ -99,14 +99,16 @@ public interface Dashku {
 	/**
 	 * Deletes an existing dashboard from the Dashku server
 	 * @param dashboard the dashboard to delete
+	 * @return the id of the deleted dashboard
 	 */
-	public void deleteDashboard(Dashboard dashboard);
+	public String deleteDashboard(Dashboard dashboard);
 	
 	/**
 	 * Deletes an existing dashboard from the Dashku server
 	 * @param dashboardId the id of the dashboard to delete
+	 * @return the id of the deleted dashboard
 	 */
-	public void deleteDashboard(CharSequence dashboardId);
+	public String deleteDashboard(CharSequence dashboardId);
 	
 	/**
 	 * Creates a new widget in the Dashku server associated to the dashboard with the passed dashboard id
@@ -128,8 +130,9 @@ public interface Dashku {
 	 * Deletes an existing widget from the Dashku server
 	 * @param dashboardId The id of the dashboard that this widget belongs to 
 	 * @param widgetId The id of the widget to delete
+	 * @return The id of the deleted widget
 	 */
-	public void deleteWidget(CharSequence dashboardId, CharSequence widgetId);
+	public String deleteWidget(CharSequence dashboardId, CharSequence widgetId);
 	
 	/**
 	 * Transmits data to existing widgets

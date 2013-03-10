@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.protocol.http;
 
+import java.nio.charset.Charset;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -54,6 +56,10 @@ public class DashkuHttpRequest {
 	protected Object payload;
 	/** The bufferized payload */
 	protected ChannelBuffer channelBuffer = ChannelBuffers.EMPTY_BUFFER;
+	
+	/** A UTF-8 charset for URL encoding */
+	public static final Charset UTF8CS = Charset.forName("UTF-8");
+
 	
 	
 	
@@ -93,10 +99,11 @@ public class DashkuHttpRequest {
 		int contentLength = channelBuffer.readableBytes();
 		if(contentLength>0) {					
 			req.setContent(channelBuffer);
-			req.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");			
+			if(channelBuffer.toString(0, 1, UTF8CS).charAt(0)=='{') {
+				req.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");
+			}
 			HttpHeaders.setContentLength(req, contentLength);
-		} 
-		
+		} 		
 		return req;
 	}
 	

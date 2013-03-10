@@ -26,7 +26,6 @@ package org.helios.dashkuj.handlers;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.net.URLEncoder;
 
 import org.helios.dashkuj.json.GsonFactory;
 import org.helios.dashkuj.protocol.http.DashkuHttpRequest;

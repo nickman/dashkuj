@@ -40,10 +40,34 @@ public class Status {
 	/** The status message */
 	@SerializedName("status")
 	protected String message;
-	/** The status reason */
+	/** The status reason (optional) */
 	@SerializedName("reason")
 	protected String reason;
+	/** The dashboard id (optional) */
+	@SerializedName("dashboardId")
+	protected String dashboardId;
+	/** The widget id (optional) */
+	@SerializedName("widgetId")
+	protected String widgetId;
 	
+	
+	/**
+	 * Returns the dashboard id, or null if one was not set
+	 * @return the dashboardId
+	 */
+	public String getDashboardId() {
+		return dashboardId;
+	}
+	
+	/**
+	 * Returns the widget id, or null if one was not set
+	 * @return the widgetId
+	 */
+	public String getWidgetId() {
+		return widgetId;
+	}
+	
+
 	/** The (HTTP) response code */
 	protected HttpResponseStatus responseCode = HttpResponseStatus.OK; 
 	
@@ -96,8 +120,15 @@ public class Status {
 			b.append("reason:").append(reason).append(" ");
 		}
 		if(responseCode!=null) {
-			b.append("rcode:").append(responseCode).append(" ");
+			b.append("rcode:[").append(responseCode).append("] ");
 		}
+		if(dashboardId!=null) {
+			b.append("dashboardId:").append(dashboardId).append(" ");
+		}
+		if(widgetId!=null) {
+			b.append("widgetId:").append(widgetId).append(" ");
+		}		
+		
 		String status = b.toString().trim();		
 		return status + "]";
 	}

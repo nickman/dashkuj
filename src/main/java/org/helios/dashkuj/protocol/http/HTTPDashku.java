@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.protocol.http;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +39,8 @@ import org.helios.dashkuj.api.AbstractDashku;
 import org.helios.dashkuj.api.DashkuAPIException;
 import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
 import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.DashboardId;
+import org.helios.dashkuj.domain.Status;
 import org.helios.dashkuj.domain.Widget;
 import org.helios.dashkuj.handlers.DashkuDecoder;
 import org.helios.dashkuj.handlers.DashkuEncoder;
@@ -61,8 +65,6 @@ import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpRequestEncoder;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
@@ -96,14 +98,20 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	/** Encoder for collections of dashboards */
 	protected static final DashkuEncoder<Collection<Dashboard>> dashboardsEncoder = new DashkuEncoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
 	/** Encoder for dashboards */
-	protected static final DashkuEncoder<Dashboard> dashboardEncoder = new DashkuEncoder<Dashboard>(Dashboard.DASHBOARD_TYPE); 
+	protected static final DashkuEncoder<Dashboard> dashboardEncoder = new DashkuEncoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
+	/** Encoder for dashboard Ids */
+	protected static final DashkuEncoder<Status> statusEncoder = new DashkuEncoder<Status>(Dashboard.STATUS_TYPE); 
+	
 	/** Encoder for widgets */
 	protected static final DashkuEncoder<Widget> widgetEncoder = new DashkuEncoder<Widget>(Dashboard.WIDGET_TYPE); 
 
 	/** Decoder for collections of dashboards */
 	protected static final DashkuDecoder<Collection<Dashboard>> dashboardsDecoder = new DashkuDecoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
 	/** Decoder for dashboards */
-	protected static final DashkuDecoder<Dashboard> dashboardDecoder = new DashkuDecoder<Dashboard>(Dashboard.DASHBOARD_TYPE); 
+	protected static final DashkuDecoder<Dashboard> dashboardDecoder = new DashkuDecoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
+	/** Decoder for dashboard IDs */ 
+	protected static final DashkuDecoder<Status> statusDecoder = new DashkuDecoder<Status>(Dashboard.STATUS_TYPE); 
+	
 	/** Decoder for widgets */
 	protected static final DashkuDecoder<Widget> widgetDecoder = new DashkuDecoder<Widget>(Dashboard.WIDGET_TYPE); 
 	
@@ -111,10 +119,11 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	protected static final Map<TypeToken<?>, ChannelHandler[]> DOMAIN_HANDLERS;
 	
 	static {
-		Map<TypeToken<?>, ChannelHandler[]> map = new HashMap<TypeToken<?>, ChannelHandler[]>(3);
+		Map<TypeToken<?>, ChannelHandler[]> map = new HashMap<TypeToken<?>, ChannelHandler[]>(4);
 		map.put(Dashboard.DASHBOARD_COLLECTION_TYPE, new ChannelHandler[]{dashboardsEncoder, dashboardsDecoder});
 		map.put(Dashboard.DASHBOARD_TYPE, new ChannelHandler[]{dashboardEncoder, dashboardDecoder});
 		map.put(Dashboard.WIDGET_TYPE, new ChannelHandler[]{widgetEncoder, widgetDecoder});
+		map.put(Dashboard.STATUS_TYPE, new ChannelHandler[]{statusEncoder, statusDecoder});
 		DOMAIN_HANDLERS = Collections.unmodifiableMap(map);
 	}
 
@@ -132,6 +141,9 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	protected static final HttpClientCodec httpClientCodec = new HttpClientCodec(16384, 16384, 16384);
 	/** An HTTP chunk aggregator */
 	protected static final HttpChunkAggregator httpChunkAggregator = new HttpChunkAggregator(1048576);
+	
+	/** A UTF-8 charset for URL encoding */
+	public static final Charset UTF8CS = Charset.forName("UTF-8");
 	
 	/**
 	 * Creates a new HTTPDashku
@@ -202,17 +214,62 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	
 	/**
 	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(java.lang.CharSequence)
+	 */
+	@Override
+	public String deleteDashboard(CharSequence dashboardId) {
+		Status status = (Status)apiCall(Dashboard.STATUS_TYPE, channel, HttpMethod.DELETE, "deleteDashboard", null, URI_DELETE_DELETE_DASHBOARD, dashboardId, apiKey);
+		return status.getDashboardId();
+	}	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(org.helios.dashkuj.domain.Dashboard)
+	 */
+	@Override
+	public String deleteDashboard(Dashboard dashboard) {
+		return deleteDashboard(dashboard.getId());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#deleteWidget(java.lang.CharSequence, java.lang.CharSequence)
+	 */
+	@Override
+	public String deleteWidget(CharSequence dashboardId, CharSequence widgetId) {
+		Status status = (Status)apiCall(Dashboard.STATUS_TYPE, channel, HttpMethod.DELETE, "deleteWidget", null, URI_DELETE_DELETE_WIDGET, dashboardId, widgetId, apiKey);
+		log.info("Delete Widget Status {}", status);
+		return status.getWidgetId();
+	}
+	
+	
+	/** 
+	 * {@inheritDoc}
 	 * @see org.helios.dashkuj.api.Dashku#createDashboard(org.helios.dashkuj.domain.Dashboard)
 	 */
 	@Override
 	public String createDashboard(Dashboard dashboard) {
-		// URI_POST_CREATE_DASHBOARD = "/api/dashboards?apiKey=%s";
-		String diffPost = buildDirtyUpdatePost(dashboard);
+		String diffPost = buildDirtyUpdatePostJSON(dashboard);
 		log.debug("Sending Dashboard Init Attrs:[{}]", diffPost);		
 		Dashboard newd = (Dashboard) apiCall(Dashboard.DASHBOARD_TYPE, channel, HttpMethod.POST, "createDashboard", diffPost, URI_POST_CREATE_DASHBOARD, apiKey);
 		dashboard.updateFrom(newd);
+		dashboard.clearDirtyFields();
 		return newd.getId();
 	}	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#createWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
+	 */
+	@Override
+	public String createWidget(CharSequence dashboardId, Widget widget) {
+		String diffPost = buildDirtyUpdatePost(widget);
+		log.debug("Sending Widget Init Attrs:[{}]", diffPost);		
+		Widget newWidget = (Widget) apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.POST, "createWidget", diffPost, URI_POST_CREATE_WIDGET, dashboardId, apiKey);
+		widget.updateFrom(newWidget);
+		return newWidget.getId();
+	}
+	
 	
 	/**
 	 * {@inheritDoc}
@@ -221,7 +278,7 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	@Override
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
 		if(!widget.isDirty()) return widget;
-		String diffPost = buildDirtyUpdatePost(widget);
+		String diffPost = buildDirtyUpdatePostJSON(widget);
 		log.debug("Sending Widget Diffs:[{}]", diffPost);
 		apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
 		log.debug("Widget updated:[{}/{}]", widget.getName(), widget.getId());
@@ -230,23 +287,55 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	}
 	
 	/**
-	 * Builds a post body to send the dirty fields for the passed domain object
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#updateDashboard(org.helios.dashkuj.domain.Dashboard)
+	 */
+	@Override
+	public void updateDashboard(Dashboard dashboard) {
+		if(!dashboard.isDirty()) return;
+		String diffPost = buildDirtyUpdatePostJSON(dashboard);
+		log.debug("Sending Dashboard Diffs:[{}]", diffPost);
+		Dashboard db = (Dashboard) apiCall(Dashboard.DASHBOARD_TYPE, channel, HttpMethod.PUT, "updateDashboard", diffPost, URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey);
+		log.debug("Dashboard updated:[{}/{}]", dashboard.getName(), dashboard.getId());
+		dashboard.updateFrom(db);
+		dashboard.clearDirtyFields();
+	}
+	
+	
+	/**
+	 * Builds a post body in JSON format to send the dirty fields for the passed domain object
+	 * @param domainObject the domain object to generate the diff post for
+	 * @return the diff post body
+	 */
+	protected String buildDirtyUpdatePostJSON(AbstractDashkuDomainObject domainObject) {
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();
+		JsonObject diffs = new JsonObject();
+		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
+			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
+		}
+		return diffs.toString();
+	}
+	
+	/**
+	 * Builds a post body in post body format to send the dirty fields for the passed domain object.
+	 * The field values are URL encoded. 
 	 * @param domainObject the domain object to generate the diff post for
 	 * @return the diff post body
 	 */
 	protected String buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
 		StringBuilder b = new StringBuilder();
-		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();
-		JsonObject diffs = new JsonObject();
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();		
 		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
-			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
-			b.append(dirtyFieldName).append("=").append(jsonDomainObject.get(dirtyFieldName)).append("&");
+			try {
+				String value = URLEncoder.encode(jsonDomainObject.get(dirtyFieldName).toString(), UTF8CS.name());
+				b.append(dirtyFieldName).append("=").append(value).append("&");
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to encode dirty field [" + dirtyFieldName + "]", ex);
+			}
 		}
-		//return b.toString();
-		//return b.deleteCharAt(b.length()-1).toString();
-		return diffs.toString();
-		
+		return b.deleteCharAt(b.length()-1).toString();
 	}
+	
 	
 
 	/**

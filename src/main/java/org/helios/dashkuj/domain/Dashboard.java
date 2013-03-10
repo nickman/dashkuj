@@ -64,6 +64,12 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	@Embedded("widgets")
 	protected final List<Widget> widgets = new CopyOnWriteArrayList<Widget>();
 
+	
+	/** The type of a Status */
+	public static final TypeToken<Status> STATUS_TYPE = new TypeToken<Status>(){/* No Op */};	
+
+	/** The type of a DashboardId */
+	public static final TypeToken<DashboardId> DASHBOARD_ID_TYPE = new TypeToken<DashboardId>(){/* No Op */};	
 	/** The type of a dashboard */
 	public static final TypeToken<Dashboard> DASHBOARD_TYPE = new TypeToken<Dashboard>(){/* No Op */};	
 	/** The type of a collection of dashboards */

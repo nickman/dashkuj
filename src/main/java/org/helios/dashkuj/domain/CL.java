@@ -24,12 +24,11 @@
  */
 package org.helios.dashkuj.domain;
 
-import java.util.Collection;
-import java.util.Random;
+import java.io.File;
+import java.net.URLEncoder;
 
 import org.helios.dashkuj.protocol.http.HTTPDashku;
-
-import com.google.gson.JsonObject;
+import org.helios.dashkuj.util.URLHelper;
 
 /**
  * <p>Title: CL</p>
@@ -67,7 +66,7 @@ public class CL {
 //				log(gson.toJson(db));
 //			}
 			
-			HTTPDashku http = new HTTPDashku("5fd3eafd-0393-4db1-8bd6-97817bbe219a", "dashku", 3000);
+			HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
 			http.setTimeout(60000);
 			Dashboard d = new Dashboard();
 			d.setName("JVM Monitor");
@@ -75,6 +74,32 @@ public class CL {
 			d.setScreenWidth(ScreenWidth.fluid);
 			http.createDashboard(d);
 			log("Created new dashboard:" + d);
+			Widget w = new Widget();
+			w.setCss("#heapSavant {\n font-weight: bold; \n font-size: 24pt;\n}");
+			w.setHeight(150);
+			w.setWidth(300);
+			w.setHtml(URLEncoder.encode("<div id=\"heapSavant\"></div>", "UTF-8"));
+			w.setJson(URLEncoder.encode("{max=100,alloc=60,used=30}", "UTF-8"));
+			w.setName("HeapSpace");
+			w.setScriptType(ScriptType.javascript);
+			w.setScript(URLEncoder.encode(new String(URLHelper.getBytesFromURL(URLHelper.toURL(new File("src/test/resources/scripts/js/newWidgetScript.js")))), "UTF-8"));
+			http.createWidget(d.getId(), w);
+			log("Created new widget:" + w);
+			
+			log("Deleting Widget");
+			String deletedWid = http.deleteWidget(d.getId(), w.getId());
+			log("Deleted Widget [" + deletedWid + "]");
+			
+			
+			log("Updating Dashboard");
+			d.setName("JVM2 Monitor");
+			http.updateDashboard(d);
+			log("Updated Dashboard:[" + d.getName() + "]");
+
+			
+			log("Deleting Dashboard");
+			String deletedDid = http.deleteDashboard(d.getId());
+			log("Deleted Dashboard:[" + deletedDid + "]");
 			
 /* 			JsonObject transmission = new JsonObject();
 			JsonObject colours = new JsonObject();

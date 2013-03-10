@@ -24,12 +24,7 @@
  */
 package org.helios.dashkuj.api;
 
-import java.net.URL;
-import java.util.Collection;
-
-import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.Transmission;
-import org.helios.dashkuj.domain.Widget;
 
 /**
  * <p>Title: AbstractDashku</p>
@@ -56,56 +51,12 @@ public abstract class AbstractDashku implements Dashku {
 
 
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#updateDashboard(org.helios.dashkuj.domain.Dashboard)
-	 */
-	@Override
-	public void updateDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(org.helios.dashkuj.domain.Dashboard)
-	 */
-	@Override
-	public void deleteDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(java.lang.CharSequence)
-	 */
-	@Override
-	public void deleteDashboard(CharSequence dashboardId) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#createWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
-	 */
-	@Override
-	public String createWidget(CharSequence dashboardId, Widget widget) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteWidget(java.lang.CharSequence, java.lang.CharSequence)
-	 */
-	@Override
-	public void deleteWidget(CharSequence dashboardId, CharSequence widgetId) {
-		// TODO Auto-generated method stub
-		
-	}
+
+
+
+
 
 	/**
 	 * {@inheritDoc}
