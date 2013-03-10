@@ -38,10 +38,10 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.ChannelGroupFuture;
+import org.jboss.netty.channel.group.ChannelGroupFutureListener;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
-import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.logging.LoggingHandler;
 import org.jboss.netty.logging.InternalLogLevel;
 import org.jboss.netty.logging.InternalLoggerFactory;
@@ -63,6 +63,7 @@ public class TCPConnector implements ChannelPipelineFactory {
 	/** Singleton instance ctor lock */
 	private static final Object lock = new Object();
 	
+	/** Shared logging handler */
 	protected static final LoggingHandler loggingHandler = new LoggingHandler("TCPConnector", InternalLogLevel.DEBUG, false);
 	
 	static {
@@ -133,6 +134,18 @@ public class TCPConnector implements ChannelPipelineFactory {
         bootstrap.setOption("keepAlive", true);
         bootstrap.setPipelineFactory(this);
 		log.info("Created TCPConnector");
+	}
+	
+	/**
+	 * Shuts down and disposes all resources for this connector
+	 */
+	public void dispose() {
+		channelGroup.close().addListener(new ChannelGroupFutureListener() {			
+			@Override
+			public void operationComplete(ChannelGroupFuture future) throws Exception {
+				factory.releaseExternalResources();
+			}
+		});
 	}
 
 	/**
