@@ -202,31 +202,32 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	
 	/**
 	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#createDashboard(org.helios.dashkuj.domain.Dashboard)
+	 */
+	@Override
+	public String createDashboard(Dashboard dashboard) {
+		// URI_POST_CREATE_DASHBOARD = "/api/dashboards?apiKey=%s";
+		String diffPost = buildDirtyUpdatePost(dashboard);
+		log.debug("Sending Dashboard Init Attrs:[{}]", diffPost);		
+		Dashboard newd = (Dashboard) apiCall(Dashboard.DASHBOARD_TYPE, channel, HttpMethod.POST, "createDashboard", diffPost, URI_POST_CREATE_DASHBOARD, apiKey);
+		dashboard.updateFrom(newd);
+		return newd.getId();
+	}	
+	
+	/**
+	 * {@inheritDoc}
 	 * @see org.helios.dashkuj.api.Dashku#updateWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
 	 */
 	@Override
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
 		if(!widget.isDirty()) return widget;
 		String diffPost = buildDirtyUpdatePost(widget);
-		log.info("Sending Widget Diffs:[{}]", diffPost);
-		return (Widget) apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
-/*		DefaultHttpRequest httpRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.PUT, String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey));
-		httpRequest.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");
-		byte[] diffContent = diffPost.getBytes();
-//		int contentLength = diffContent.length;
-		HttpHeaders.setContentLength(httpRequest, diffContent.length);
-//		ChannelBuffer cb = ChannelBuffers.wrappedBuffer(diffContent);
-//		cb.writeBytes(diffContent);
-		httpRequest.setContent(ChannelBuffers.wrappedBuffer(diffContent));
-		channel.write(httpRequest);				
-		try {
-			return (Widget)synchReader.readEvent(timeout, TimeUnit.MILLISECONDS);
-		} catch (BlockingReadTimeoutException e) {
-			throw new DashkuAPIException("Interrupted while waiting on response", e);
-		} catch (InterruptedException e) {
-			throw new DashkuAPIException("Interrupted while waiting on response", e);
-		}
-*/	}
+		log.debug("Sending Widget Diffs:[{}]", diffPost);
+		apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
+		log.debug("Widget updated:[{}/{}]", widget.getName(), widget.getId());
+		widget.clearDirtyFields();
+		return widget;
+	}
 	
 	/**
 	 * Builds a post body to send the dirty fields for the passed domain object

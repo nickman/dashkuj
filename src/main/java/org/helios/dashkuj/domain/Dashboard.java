@@ -24,7 +24,6 @@
  */
 package org.helios.dashkuj.domain;
 
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -54,7 +53,8 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	/** The screenwidth definition for this dashboard */
 	@Property("screenWidth")
 	@SerializedName("screenWidth")
-	protected String screenWidth = null;
+	protected String screenWidth = ScreenWidth.fixed.name();
+
 	/** The id of the user that this dashboard is owned by */
 	@Property("userId")
 	@SerializedName("userId")
@@ -73,6 +73,12 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	/** The type of a widget */
 	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
 
+	/**
+	 * Creates a new Dashboard
+	 */
+	public Dashboard() {
+		
+	}
 	
 	/**
 	 * Copy Constructor
@@ -145,6 +151,24 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 		builder.append("\n]");
 		return builder.toString();
 	}
+	
+	/**
+	 * Returns the dashboard screen width
+	 * @return the screenWidth the dashboard screen width
+	 */
+	public String getScreenWidth() {
+		return screenWidth;
+	}
+
+	/**
+	 * Sets the dashboard screen width
+	 * @param screenWidth the dashboard screen width
+	 */
+	public void setScreenWidth(ScreenWidth screenWidth) {
+		dirty(this.screenWidth, screenWidth, "screenWidth");
+		this.screenWidth = screenWidth.name();
+	}
+	
 	
 	
 	

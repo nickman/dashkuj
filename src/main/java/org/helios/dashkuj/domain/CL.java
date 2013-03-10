@@ -68,9 +68,15 @@ public class CL {
 //			}
 			
 			HTTPDashku http = new HTTPDashku("5fd3eafd-0393-4db1-8bd6-97817bbe219a", "dashku", 3000);
-			//curl -H "Accept: application/json" "http://dashku:3000/api/dashboards?apiKey=5fd3eafd-0393-4db1-8bd6-97817bbe219a"
 			http.setTimeout(60000);
- 			JsonObject transmission = new JsonObject();
+			Dashboard d = new Dashboard();
+			d.setName("JVM Monitor");
+			d.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
+			d.setScreenWidth(ScreenWidth.fluid);
+			http.createDashboard(d);
+			log("Created new dashboard:" + d);
+			
+/* 			JsonObject transmission = new JsonObject();
 			JsonObject colours = new JsonObject();
 			transmission.addProperty("amount", 50);
 			transmission.addProperty("total", 100);
@@ -94,15 +100,8 @@ public class CL {
 			widget.setName("FooBar" + Math.abs(r.nextInt(100)) + "/" + Math.abs(r.nextInt(100)));
 			Widget updatedWidget = http.updateWidget(dboard.getId(), widget);
 			log("Updated Widget:\n" + updatedWidget);
-			
-			
-/*			for(int i = 0; i < 100; i++) {
-				widget.setHeight(100 + Math.abs(r.nextInt(100)));
-				widget.setWidth(100 + Math.abs(r.nextInt(100)));			
-				http.updateWidget(dboard.getId(), widget);
-				Thread.sleep(500);
-			}
 */			
+			
 			
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);

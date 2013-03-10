@@ -52,7 +52,7 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	/** The CSS content for this object */
 	@Property("css")
 	@SerializedName("css")
-	protected String css = null;
+	protected String css = "";
 	/** The name of this object */
 	@Property("name")
 	@SerializedName("name")

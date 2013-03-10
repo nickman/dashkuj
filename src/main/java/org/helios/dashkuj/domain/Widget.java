@@ -75,7 +75,12 @@ public class Widget extends AbstractDashkuDomainObject {
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.coffee
 	
 	
-	
+	/**
+	 * Creates a new Widget
+	 */
+	public Widget() {
+		
+	}
 	
 	/**
 	 * Copy Constructor

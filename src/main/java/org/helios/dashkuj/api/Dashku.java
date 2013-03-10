@@ -69,17 +69,6 @@ public interface Dashku {
 //	 */
 //	public void setApiKey(CharSequence apiKey);
 	
-	/**
-	 * Sets the Dashku API URL
-	 * @param apiUrl The Dashku API URL
-	 */
-	public void setApiUrl(CharSequence apiUrl);
-	
-	/**
-	 * Sets the Dashku API URL
-	 * @param apiUrl The Dashku API URL
-	 */
-	public void setApiUrl(URL apiUrl);
 	
 	/**
 	 * Retrieves all of the dashboards associated with the set Dashku API key

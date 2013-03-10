@@ -39,7 +39,7 @@ import org.helios.dashkuj.domain.Widget;
  * <p><code>org.helios.dashkuj.api.AbstractDashku</code></p>
  */
 
-public class AbstractDashku implements Dashku {
+public abstract class AbstractDashku implements Dashku {
 	/** The API key */
 	protected final String apiKey;
 
@@ -54,55 +54,7 @@ public class AbstractDashku implements Dashku {
 	}
 
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#setApiUrl(java.lang.CharSequence)
-	 */
-	@Override
-	public void setApiUrl(CharSequence apiUrl) {
-		// TODO Auto-generated method stub
-		
-	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#setApiUrl(java.net.URL)
-	 */
-	@Override
-	public void setApiUrl(URL apiUrl) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getDashboards()
-	 */
-	@Override
-	public Collection<Dashboard> getDashboards() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getDashboard(java.lang.CharSequence)
-	 */
-	@Override
-	public Dashboard getDashboard(CharSequence dashboardId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#createDashboard(org.helios.dashkuj.domain.Dashboard)
-	 */
-	@Override
-	public String createDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -144,15 +96,6 @@ public class AbstractDashku implements Dashku {
 		return null;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#updateWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
-	 */
-	@Override
-	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
-		return null;
-		
-	}
 
 	/**
 	 * {@inheritDoc}
