@@ -28,6 +28,7 @@ import java.io.File;
 import java.net.URLEncoder;
 
 import org.helios.dashkuj.protocol.http.HTTPDashku;
+import org.helios.dashkuj.redis.RedisListener;
 import org.helios.dashkuj.util.URLHelper;
 
 /**
@@ -67,6 +68,7 @@ public class CL {
 //			}
 			
 			HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
+			RedisListener.getInstance("dashku", 6379).start();
 			http.setTimeout(60000);
 			Dashboard d = new Dashboard();
 			d.setName("JVM Monitor");
@@ -100,6 +102,8 @@ public class CL {
 			log("Deleting Dashboard");
 			String deletedDid = http.deleteDashboard(d.getId());
 			log("Deleted Dashboard:[" + deletedDid + "]");
+			
+			Thread.currentThread().join(100000);
 			
 /* 			JsonObject transmission = new JsonObject();
 			JsonObject colours = new JsonObject();

@@ -15,6 +15,7 @@
     <logback.version>1.0.9</logback.version>
     <gson.version>2.2.2</gson.version>
     <morphia.version>1.2.2</morphia.version>
+    <jedis.version>2.1.0</jedis.version>
   </properties>
 
 	<build>
@@ -133,7 +134,16 @@
 		  <artifactId>morphia</artifactId>
 		  <version>${morphia.version}</version> 
 		</dependency>
-		
+	    <!--
+	      Jedis
+		-->
+		<dependency>
+		    <groupId>redis.clients</groupId>
+		    <artifactId>jedis</artifactId>
+		    <version>${jedis.version}</version>
+		    <type>jar</type>
+		</dependency>
+				
 		
 		
 	    

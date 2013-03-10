@@ -70,6 +70,8 @@ public class Widget extends AbstractDashkuDomainObject {
 	@Property("html")
 	@SerializedName("html")
 	protected String html = null;
+	/** The dashku server provided script to transmit to this widget */
+	protected String serverScript = null;
 	
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.js
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.coffee
