@@ -75,6 +75,24 @@ public class Widget extends AbstractDashkuDomainObject {
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.coffee
 	
 	
+	
+	
+	/**
+	 * Copy Constructor
+	 * @param widget a <code>Widget</code> object
+	 */
+	public Widget(Widget widget) {
+		super(widget);
+	    this.id = widget.id;
+	    this.height = widget.height;
+	    this.width = widget.width;
+	    this.json = widget.json;
+	    this.scriptType = widget.scriptType;
+	    this.script = widget.script;
+	    this.scopedCss = widget.scopedCss;
+	    this.html = widget.html;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 * @see org.helios.dashkuj.domain.AbstractDashkuDomainObject#getId()

@@ -61,6 +61,19 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	/** The names of the fields that are considered "dirty" */
 	protected final Set<String> dirtyFields = new CopyOnWriteArraySet<String>();
 
+	
+	
+	/**
+	 * Copy Constructor
+	 * @param abstractDashkuDomainObject a <code>AbstractDashkuDomainObject</code> object
+	 */
+	public AbstractDashkuDomainObject(AbstractDashkuDomainObject abstractDashkuDomainObject) {
+	    this.created = abstractDashkuDomainObject.created;
+	    this.lastUpdated = abstractDashkuDomainObject.lastUpdated;
+	    this.css = abstractDashkuDomainObject.css;
+	    this.name = abstractDashkuDomainObject.name;
+	}
+
 	/**
 	 * Creates a new AbstractDashkuDomainObject
 	 */

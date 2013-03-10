@@ -74,9 +74,24 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
 
 	
+	/**
+	 * Copy Constructor
+	 * @param dashboard a <code>Dashboard</code> object
+	 */
+	public Dashboard(Dashboard dashboard) {
+		super(dashboard);
+	    this.id = dashboard.id;
+	    this.screenWidth = dashboard.screenWidth;
+	    this.userId = dashboard.userId;
+	}
+
+
+
 	public static void main(String[] args) {
 		System.out.println("DASHBOARD_COLLECTION_TYPE:" + DASHBOARD_COLLECTION_TYPE.getClass().getName() + "/" + DASHBOARD_COLLECTION_TYPE);
 	}
+	
+	
 	
 	/**
 	 * {@inheritDoc}
