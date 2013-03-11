@@ -24,12 +24,13 @@
  */
 package org.helios.dashkuj.domain;
 
-import java.io.File;
-import java.net.URLEncoder;
+import java.lang.management.ManagementFactory;
+import java.util.Collection;
+import java.util.Random;
 
 import org.helios.dashkuj.protocol.http.HTTPDashku;
-import org.helios.dashkuj.redis.RedisListener;
-import org.helios.dashkuj.util.URLHelper;
+
+import com.google.gson.JsonObject;
 
 /**
  * <p>Title: CL</p>
@@ -67,69 +68,87 @@ public class CL {
 //				log(gson.toJson(db));
 //			}
 			
-			HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
-			RedisListener.getInstance("dashku", 6379).start();
-			http.setTimeout(60000);
-			Dashboard d = new Dashboard();
-			d.setName("JVM Monitor");
-			d.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
-			d.setScreenWidth(ScreenWidth.fluid);
-			http.createDashboard(d);
-			log("Created new dashboard:" + d);
-			Widget w = new Widget();
-			w.setCss("#heapSavant {\n font-weight: bold; \n font-size: 24pt;\n}");
-			w.setHeight(150);
-			w.setWidth(300);
-			w.setHtml(URLEncoder.encode("<div id=\"heapSavant\"></div>", "UTF-8"));
-			w.setJson(URLEncoder.encode("{max=100,alloc=60,used=30}", "UTF-8"));
-			w.setName("HeapSpace");
-			w.setScriptType(ScriptType.javascript);
-			w.setScript(URLEncoder.encode(new String(URLHelper.getBytesFromURL(URLHelper.toURL(new File("src/test/resources/scripts/js/newWidgetScript.js")))), "UTF-8"));
-			http.createWidget(d.getId(), w);
-			log("Created new widget:" + w);
+			//HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
+			HTTPDashku http = new HTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
 			
-			log("Deleting Widget");
-			String deletedWid = http.deleteWidget(d.getId(), w.getId());
-			log("Deleted Widget [" + deletedWid + "]");
+//			RedisListener.getInstance("dashku", 6379).start();
+//			http.setTimeout(60000);
+//			Dashboard d = new Dashboard();
+//			d.setName("JVM Monitor");
+//			d.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
+//			d.setScreenWidth(ScreenWidth.fluid);
+//			http.createDashboard(d);
+//			log("Created new dashboard:" + d);
+//			Widget w = new Widget();
+//			w.setCss("#heapSavant {\n font-weight: bold; \n font-size: 24pt;\n}");
+//			w.setHeight(150);
+//			w.setWidth(300);
+//			w.setHtml(URLEncoder.encode("<div id=\"heapSavant\"></div>", "UTF-8"));
+//			w.setJson(URLEncoder.encode("{max=100,alloc=60,used=30}", "UTF-8"));
+//			w.setName("HeapSpace");
+//			w.setScriptType(ScriptType.javascript);
+//			w.setScript(URLEncoder.encode(new String(URLHelper.getBytesFromURL(URLHelper.toURL(new File("src/test/resources/scripts/js/newWidgetScript.js")))), "UTF-8"));
+//			http.createWidget(d.getId(), w);
+//			log("Created new widget:" + w);
+//			
+//			log("Deleting Widget");
+//			String deletedWid = http.deleteWidget(d.getId(), w.getId());
+//			log("Deleted Widget [" + deletedWid + "]");
+//			
+//			
+//			log("Updating Dashboard");
+//			d.setName("JVM2 Monitor");
+//			http.updateDashboard(d);
+//			log("Updated Dashboard:[" + d.getName() + "]");
+//
+//			
+//			log("Deleting Dashboard");
+//			String deletedDid = http.deleteDashboard(d.getId());
+//			log("Deleted Dashboard:[" + deletedDid + "]");
+//			
+//			Thread.currentThread().join(100000);
 			
-			
-			log("Updating Dashboard");
-			d.setName("JVM2 Monitor");
-			http.updateDashboard(d);
-			log("Updated Dashboard:[" + d.getName() + "]");
-
-			
-			log("Deleting Dashboard");
-			String deletedDid = http.deleteDashboard(d.getId());
-			log("Deleted Dashboard:[" + deletedDid + "]");
-			
-			Thread.currentThread().join(100000);
-			
-/* 			JsonObject transmission = new JsonObject();
+ 			JsonObject transmission = new JsonObject();
 			JsonObject colours = new JsonObject();
-			transmission.addProperty("amount", 50);
-			transmission.addProperty("total", 100);
 			colours.addProperty("amount", "#51FF00");
 			colours.addProperty("total", "#FF002B");
-			transmission.add("colours", colours);
 			
-			http.transmit("513b768ea03ed86f05000058", transmission);
-			Collection<Dashboard> dboards = http.getDashboards();
-			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
-			Dashboard dboard = dboards.iterator().next();
-			log(dboard);
-			dboard = http.getDashboard(dboard.getId());
-			log("Retrieved [" + dboard.getName() + "] Dashboard Instance");
-			log(dboard);
-			Widget widget = dboard.widgets.get(0);
-			log("Updating Widget [" + widget.getName() + "]");
-			Random r = new Random(System.currentTimeMillis());
-			widget.setHeight(100 + Math.abs(r.nextInt(100)));
-			widget.setWidth(100 + Math.abs(r.nextInt(100))*2);	
-			widget.setName("FooBar" + Math.abs(r.nextInt(100)) + "/" + Math.abs(r.nextInt(100)));
-			Widget updatedWidget = http.updateWidget(dboard.getId(), widget);
-			log("Updated Widget:\n" + updatedWidget);
-*/			
+			transmission.addProperty("bigNumber", 50);
+//			transmission.addProperty("amount", 50);
+//			transmission.addProperty("total", 100);
+//			colours.addProperty("amount", "#51FF00");
+//			colours.addProperty("total", "#FF002B");
+//			transmission.add("colours", colours);
+			JsonObject msg = new JsonObject();
+			msg.addProperty("message", "Hello Sean Shih");
+			http.transmit("513e4333d7b1a5e709000087", msg);
+			http.transmit("5138a8bf124965c506000037", transmission);
+			for(int i = 0; i < 10000; i++) {
+				transmission.addProperty("bigNumber", i);
+				http.transmit("5138a8bf124965c506000037", transmission);
+				JsonObject heap = new JsonObject();
+				heap.addProperty("amount", ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()*((i%30)+1));
+				heap.addProperty("total", ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+				heap.add("colours", colours);
+				http.transmit("5138a957124965c50600003d", heap);
+				Thread.sleep(1000);
+			}
+//			Collection<Dashboard> dboards = http.getDashboards();
+//			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
+//			Dashboard dboard = dboards.iterator().next();
+//			log(dboard);
+//			dboard = http.getDashboard(dboard.getId());
+//			log("Retrieved [" + dboard.getName() + "] Dashboard Instance");
+//			log(dboard);
+//			Widget widget = dboard.widgets.get(0);
+//			log("Updating Widget [" + widget.getName() + "]");
+//			Random r = new Random(System.currentTimeMillis());
+//			widget.setHeight(100 + Math.abs(r.nextInt(100)));
+//			widget.setWidth(100 + Math.abs(r.nextInt(100))*2);	
+//			widget.setName("FooBar" + Math.abs(r.nextInt(100)) + "/" + Math.abs(r.nextInt(100)));
+//			Widget updatedWidget = http.updateWidget(dboard.getId(), widget);
+//			log("Updated Widget:\n" + updatedWidget);
+			
 			
 			
 		} catch (Exception ex) {
