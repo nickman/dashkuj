@@ -24,19 +24,22 @@
  */
 package org.helios.dashkuj.redis;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
-import org.helios.dashkuj.json.GsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 /**
  * <p>Title: RedisListener</p>
@@ -46,9 +49,14 @@ import com.google.gson.JsonParser;
  * <p><code>org.helios.dashkuj.redis.RedisListener</code></p>
  */
 
-public class RedisListener extends JedisPubSub {
+public class RedisListener extends JedisPubSub implements ThreadFactory, Runnable {
 	/** A map of listeners keyed by host:port */
 	private static final Map<String, RedisListener> listeners = new ConcurrentHashMap<String, RedisListener>();
+	/** Listener thread serial number factory */
+	private static final AtomicLong threadSerial = new AtomicLong(0L);
+	/** Listener thread thread group */
+	private static final ThreadGroup threadGroup = new ThreadGroup("RedisListenerThreadGroup");
+	
 	/** Instance logger */
 	protected final Logger log;
 	
@@ -59,7 +67,19 @@ public class RedisListener extends JedisPubSub {
 	/** The jedis instance redis port */
 	private final int port;
 	/** Indicates if the jedis listener is started */
-	private final AtomicBoolean listenerStarted = new AtomicBoolean(false);;
+	private final AtomicBoolean listenerStarted = new AtomicBoolean(false);
+	/** Indicates if the jedis listener is activated */
+	private final AtomicBoolean listenerActivated = new AtomicBoolean(false);
+	/** The activation latch for the psubscriber thread, triggered on the first psubscribe */
+	private final AtomicReference<CountDownLatch> listenerLatch = new AtomicReference<CountDownLatch>(null);
+	/** A reference to the first psubscribe argument which must be executed by the psub thread */
+	private final AtomicReference<String[]> initialPsubArg = new AtomicReference<String[]>(null);
+	
+	/** The patterns that have been psubscribed to */
+	private final Set<String> psubscriptions = new CopyOnWriteArraySet<String>();
+	
+	/** The psub thread for this listener instance */
+	private volatile Thread psubThread = null;
 	
 	
 	/**
@@ -102,8 +122,10 @@ public class RedisListener extends JedisPubSub {
 		if(listenerStarted.get()) {
 			log.debug("RedisListener already started");
 		}
-		//jedis.subscribe(this, "*");
-		jedis.psubscribe(this, "*");
+		psubThread = newThread(this);
+		psubThread.start();
+		listenerActivated.set(false);
+		listenerLatch.set(new CountDownLatch(1));
 		listenerStarted.set(true);
 	}
 	
@@ -116,8 +138,54 @@ public class RedisListener extends JedisPubSub {
 		}
 		this.punsubscribe("*");
 		listenerStarted.set(false);
+		psubThread.interrupt();
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		log.info("RedisListener psub thread starting...");
+		try {
+			log.info("RedisListener psub thread activated");
+			jedis.psubscribe(this);
+			log.info("RedisListener psub thread exiting...");
+		} catch (Exception e) {
+			if(listenerStarted.get()) {
+				log.error("psub thread terminated", e);
+			} else {
+				log.info("RedisListener psub thread ended normally");
+			}
+		}
+		log.info("RedisListener psub thread exited");
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see redis.clients.jedis.JedisPubSub#psubscribe(java.lang.String[])
+	 */
+	@Override
+	public void psubscribe(String... patterns) {
+		if(patterns!=null) {
+			Collections.addAll(psubscriptions, patterns);
+			super.psubscribe(patterns);
+		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see redis.clients.jedis.JedisPubSub#punsubscribe(java.lang.String[])
+	 */
+	@Override
+	public void punsubscribe(String... patterns) {
+		if(patterns!=null) {
+			for(String pattern: patterns) {
+				psubscriptions.remove(pattern);
+				super.punsubscribe(pattern);
+			}
+		}
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -181,6 +249,17 @@ public class RedisListener extends JedisPubSub {
 	public void onPSubscribe(String pattern, int subscribedChannels) {
 		log.info("Redis Listener Psubscribed for pattern [{}]:[{}]", pattern, subscribedChannels);
 		
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * @see java.util.concurrent.ThreadFactory#newThread(java.lang.Runnable)
+	 */
+	@Override
+	public Thread newThread(Runnable r) {
+		Thread t = new Thread(threadGroup, r, "RedisListenerThread#" + threadSerial.incrementAndGet());
+		t.setDaemon(true);
+		return t;
 	}
 
 }
