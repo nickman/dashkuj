@@ -140,5 +140,30 @@ public interface Dashku {
 	 */
 	public void transmit(Transmission...transmissions);
 	
+	/**
+	 * Acquires the named resource from the server as a string
+	 * @param resourceUri The URI of the resource
+	 * @return the resource of a string
+	 */
+	public String getResourceString(CharSequence resourceUri);
+	
+	/**
+	 * Returns the dashku host or ip address 
+	 * @return the dashku host or ip address
+	 */
+	public String getHost();
+	
+	/**
+	 * Returns the dashku port
+	 * @return the dashku port
+	 */
+	public int getPort();
+	
+	/**
+	 * Returns the dashku api key
+	 * @return the dashku api key
+	 */
+	public String getApiKey();
+	
 	
 }

@@ -81,7 +81,7 @@ public class PubSubRequest {
 	/**
 	 * Returns a new PubSubRequest
 	 * @param commandName The {@link PubSubCommand} name to issue
-	 * @param channel The name of the channel to publish to
+	 * @param arguments The content to publish
 	 * @return a PubSubRequest
 	 */
 	public static PubSubRequest newRequest(CharSequence commandName, String...arguments) {

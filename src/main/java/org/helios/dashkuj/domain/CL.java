@@ -25,10 +25,9 @@
 package org.helios.dashkuj.domain;
 
 import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.Random;
 
 import org.helios.dashkuj.protocol.http.HTTPDashku;
+import org.helios.dashkuj.redis.RedisPubSub;
 
 import com.google.gson.JsonObject;
 
@@ -70,8 +69,15 @@ public class CL {
 			
 			//HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
 			HTTPDashku http = new HTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
+			String contentUri = "/api/dashboards/513bd839e9fc007c07000003/widgets/513e64d36ee3bab80600005c/downloads/dashku_513e64d36ee3bab80600005c.rb";
+			log("Retrieving content as string: [" + contentUri + "]");
+			String content = http.getResourceString(contentUri);
+			log("Content:\n" + content);
+//			RedisPubSub pubSub = RedisPubSub.getInstance("dashku", 6379).start();
+//			pubSub.psubscribe("*");
+//			pubSub.subscribe("*");
 			
-//			RedisListener.getInstance("dashku", 6379).start();
+			Thread.sleep(12000000);
 //			http.setTimeout(60000);
 //			Dashboard d = new Dashboard();
 //			d.setName("JVM Monitor");

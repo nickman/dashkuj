@@ -141,6 +141,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see org.jboss.netty.channel.ChannelFutureListener#operationComplete(org.jboss.netty.channel.ChannelFuture)
 	 */
+	@Override
 	public void operationComplete(ChannelFuture future) throws Exception {		
 		if(pubChannel.isConnected()) {
 			pubChannel.close();
@@ -269,6 +270,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	/**
 	 * Closes this PubSub
 	 */
+	@Override
 	public void close()  {
 		closeRequested.set(true);
 		subChannel.close();
@@ -331,6 +333,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#subscribe(java.lang.String[])
 	 */
+	@Override
 	public ChannelFuture subscribe(String... channels) {
 		return subChannel.write(PubSubRequest.newRequest(PubSubCommand.SUBSCRIBE, channels));
 	}
@@ -339,6 +342,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#unsubscribe(java.lang.String[])
 	 */
+	@Override
 	public ChannelFuture unsubscribe(String... channels) {
 		return subChannel.write(PubSubRequest.newRequest(PubSubCommand.UNSUBSCRIBE, channels));
 		
@@ -348,6 +352,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#psubscribe(java.lang.String[])
 	 */
+	@Override
 	public ChannelFuture psubscribe(String... patterns) {
 		return subChannel.write(PubSubRequest.newRequest(PubSubCommand.PSUBSCRIBE, patterns));
 		
@@ -357,6 +362,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#punsubscribe(java.lang.String[])
 	 */
+	@Override
 	public ChannelFuture punsubscribe(String... patterns) {
 		return subChannel.write(PubSubRequest.newRequest(PubSubCommand.PUNSUBSCRIBE, patterns));		
 	}
@@ -379,6 +385,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#publish(java.lang.String, java.lang.String[])
 	 */
+	@Override
 	public ChannelFuture publish(String channel, String...messages) {
 		initPublishChannel();		
 		ChannelFuture cf = null;
@@ -406,10 +413,12 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 		final Set<String> execThreadNames = new HashSet<String>();
 		pubsub.registerListener(new SubListener(){
 			
+			@Override
 			public void onChannelMessage(String channel, String message) {
 				execThreadNames.add(Thread.currentThread().getName());
 				log("[" + Thread.currentThread().getName() + "] Channel Message\n\tChannel:" + channel + "\n\tMessage:" + message);
 			}
+			@Override
 			public void onPatternMessage(String pattern, String channel, String message) {
 				execThreadNames.add(Thread.currentThread().getName());
 				log("[" + Thread.currentThread().getName() + "]  Pattern Message\n\tPattern:" + pattern + "\n\tChannel:" + channel + "\n\tMessage:" + message);
@@ -464,6 +473,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#registerListener(redis.clients.nedis.netty.SubListener)
 	 */
+	@Override
 	public void registerListener(SubListener listener) {
 		if(listener!=null) {
 			listeners.add(listener);
@@ -484,6 +494,7 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 	 * {@inheritDoc}
 	 * @see redis.clients.nedis.netty.PubSub#unregisterListener(redis.clients.nedis.netty.SubListener)
 	 */
+	@Override
 	public void unregisterListener(SubListener listener) {
 		if(listener!=null) {
 			listeners.remove(listener);
@@ -498,6 +509,22 @@ public class OptimizedPubSub extends SimpleChannelUpstreamHandler implements Pub
 		if(listener!=null) {
 			connectionListeners.remove(listener);
 		}
+	}
+
+	/**
+	 * Returns the host this pubsub is connected to 
+	 * @return the host this pubsub is connected to 
+	 */
+	public String getHost() {
+		return host;
+	}
+
+	/**
+	 * Returns the port this pubsub is connected to 
+	 * @return the port this pubsub is connected to
+	 */
+	public int getPort() {
+		return port;
 	}
 
 

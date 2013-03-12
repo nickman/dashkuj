@@ -24,53 +24,28 @@
  */
 package org.helios.dashkuj.protocol.http;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.helios.dashkuj.api.AbstractDashku;
+import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.api.DashkuAPIException;
-import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
 import org.helios.dashkuj.domain.Dashboard;
-import org.helios.dashkuj.domain.DashboardId;
 import org.helios.dashkuj.domain.Status;
+import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
-import org.helios.dashkuj.handlers.DashkuDecoder;
-import org.helios.dashkuj.handlers.DashkuEncoder;
-import org.helios.dashkuj.json.GsonFactory;
-import org.helios.dashkuj.transport.TCPConnector;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.DownstreamMessageEvent;
-import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
-import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
-import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpVersion;
-import org.jboss.netty.handler.execution.ExecutionHandler;
-import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.jboss.netty.handler.queue.BlockingReadHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -83,67 +58,11 @@ import com.google.gson.reflect.TypeToken;
  * <p><code>org.helios.dashkuj.protocol.http.HTTPDashku</code></p>
  */
 
-public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandler  {
-	/** The netty channel connecting to the dashku server */
-	protected final Channel channel;
-	/** The request timeout in ms. */
-	protected long timeout = DEFAULT_REQUEST_TIMEOUT;
+public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 	/** Synchronous invocation handler queue */
 	protected final BlockingQueue<ChannelEvent> synchReaderQueue = new ArrayBlockingQueue<ChannelEvent>(100, false); 
 	 /** Synchronous invocation handler */
 	protected final BlockingReadHandler<Object> synchReader = new BlockingReadHandler<Object>(synchReaderQueue);
-	
-	/** Shared execution handler */
-	private static final ExecutionHandler executionHandler = new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(5, 1048576, 1048576));
-	/** Encoder for collections of dashboards */
-	protected static final DashkuEncoder<Collection<Dashboard>> dashboardsEncoder = new DashkuEncoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
-	/** Encoder for dashboards */
-	protected static final DashkuEncoder<Dashboard> dashboardEncoder = new DashkuEncoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
-	/** Encoder for dashboard Ids */
-	protected static final DashkuEncoder<Status> statusEncoder = new DashkuEncoder<Status>(Dashboard.STATUS_TYPE); 
-	
-	/** Encoder for widgets */
-	protected static final DashkuEncoder<Widget> widgetEncoder = new DashkuEncoder<Widget>(Dashboard.WIDGET_TYPE); 
-
-	/** Decoder for collections of dashboards */
-	protected static final DashkuDecoder<Collection<Dashboard>> dashboardsDecoder = new DashkuDecoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
-	/** Decoder for dashboards */
-	protected static final DashkuDecoder<Dashboard> dashboardDecoder = new DashkuDecoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
-	/** Decoder for dashboard IDs */ 
-	protected static final DashkuDecoder<Status> statusDecoder = new DashkuDecoder<Status>(Dashboard.STATUS_TYPE); 
-	
-	/** Decoder for widgets */
-	protected static final DashkuDecoder<Widget> widgetDecoder = new DashkuDecoder<Widget>(Dashboard.WIDGET_TYPE); 
-	
-	/** Domain object encoder/decoder pairs keyed by the type token of the domain object */
-	protected static final Map<TypeToken<?>, ChannelHandler[]> DOMAIN_HANDLERS;
-	
-	static {
-		Map<TypeToken<?>, ChannelHandler[]> map = new HashMap<TypeToken<?>, ChannelHandler[]>(4);
-		map.put(Dashboard.DASHBOARD_COLLECTION_TYPE, new ChannelHandler[]{dashboardsEncoder, dashboardsDecoder});
-		map.put(Dashboard.DASHBOARD_TYPE, new ChannelHandler[]{dashboardEncoder, dashboardDecoder});
-		map.put(Dashboard.WIDGET_TYPE, new ChannelHandler[]{widgetEncoder, widgetDecoder});
-		map.put(Dashboard.STATUS_TYPE, new ChannelHandler[]{statusEncoder, statusDecoder});
-		DOMAIN_HANDLERS = Collections.unmodifiableMap(map);
-	}
-
-	
-	/** The default timeout in ms. */
-	public static final long DEFAULT_REQUEST_TIMEOUT = 2000;
-	
-	/** Instance logger */
-	protected final Logger log = LoggerFactory.getLogger(getClass());
-	
-	/** The name of the handler after which domain handlers should be inserted */
-	static final String PIPELINE_INSERT = "execution";
-	
-	/** An HTTP codec */
-	protected static final HttpClientCodec httpClientCodec = new HttpClientCodec(16384, 16384, 16384);
-	/** An HTTP chunk aggregator */
-	protected static final HttpChunkAggregator httpChunkAggregator = new HttpChunkAggregator(1048576);
-	
-	/** A UTF-8 charset for URL encoding */
-	public static final Charset UTF8CS = Charset.forName("UTF-8");
 	
 	/**
 	 * Creates a new HTTPDashku
@@ -152,43 +71,12 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	 * @param apiKey The dashku API key
 	 */
 	public HTTPDashku(String apiKey, String host, int port) {
-		super(apiKey);
-		channel = TCPConnector.getInstance().getSynchChannel(host, port);
-		ChannelPipeline pipeline = channel.getPipeline();
-		pipeline.addLast("http-codec", httpClientCodec); 					// UP/DOWN
-		pipeline.addLast("aggregator", httpChunkAggregator);				// UP ONLY
-		pipeline.addLast("httpRequestBuilder", this);						// DOWN ONLY
-		//-- domain DECODER here --//										// UP ONLY
-		//-- domain ENCODER here --//										// DOWN ONLY
-		pipeline.addLast("execution", executionHandler);					// UP/DOWN
+		super(apiKey, host, port);
 		pipeline.addLast("synchreader", synchReader);						// UP ONLY		
 	}
 	
-	/**
-	 * Installs the domain encoder/decoder pair into the pipeline for the passed type
-	 * @param type The type of the domain object to install the encoder/decoder pair for 
-	 * @param pipeline The pipeline to install into
-	 * @return The names of the installed channel handlers
-	 */
-	protected String[] installDomainHandlers(TypeToken<?> type, ChannelPipeline pipeline) {
-		ChannelHandler[] handlers = DOMAIN_HANDLERS.get(type);
-		String[] names = new String[]{type.toString() + "-decoder", type.toString() + "-encoder"}; 
-		
-		pipeline.addBefore(PIPELINE_INSERT, names[1], handlers[1]);
-		pipeline.addBefore(PIPELINE_INSERT, names[0], handlers[0]);		
-		log.debug("Installed Domain Handlers for {}", Arrays.toString(names));
-		return names;
-	}
+
 	
-	/**
-	 * Removes the named channel handlers from the passed pipeline
-	 * @param names The names of the channel handlers to remove
-	 * @param pipeline The pipeline to remove from
-	 */
-	protected void removeDomainHandlers(String[] names, ChannelPipeline pipeline) {
-		pipeline.remove(names[0]);
-		pipeline.remove(names[1]);
-	}
 	
 	
 	/**
@@ -211,6 +99,24 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	public Dashboard getDashboard(CharSequence dashboardId) {
 		return (Dashboard) apiCall(Dashboard.DASHBOARD_TYPE, channel, HttpMethod.GET, "getDashboard", null, URI_GET_DASHBOARD, dashboardId, apiKey);
 	}	
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#getResourceString(java.lang.CharSequence)
+	 */
+	@Override
+	public String getResourceString(CharSequence resourceUri) {
+		if(resourceUri==null) return null;
+		HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, resourceUri.toString());
+		channel.write(request);
+		try {
+			HttpResponse response = (HttpResponse)synchReader.read(timeout, TimeUnit.MILLISECONDS);
+			return response.getContent().toString(UTF8CS);
+		} catch (Exception ex) {
+			throw new DashkuAPIException("Failed to retrieve resource [" + resourceUri + "]", ex);
+		}	
+	}
+
 	
 	/**
 	 * {@inheritDoc}
@@ -302,40 +208,7 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	}
 	
 	
-	/**
-	 * Builds a post body in JSON format to send the dirty fields for the passed domain object
-	 * @param domainObject the domain object to generate the diff post for
-	 * @return the diff post body
-	 */
-	protected String buildDirtyUpdatePostJSON(AbstractDashkuDomainObject domainObject) {
-		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();
-		JsonObject diffs = new JsonObject();
-		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
-			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
-		}
-		return diffs.toString();
-	}
-	
-	/**
-	 * Builds a post body in post body format to send the dirty fields for the passed domain object.
-	 * The field values are URL encoded. 
-	 * @param domainObject the domain object to generate the diff post for
-	 * @return the diff post body
-	 */
-	protected String buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
-		StringBuilder b = new StringBuilder();
-		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();		
-		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
-			try {
-				String value = URLEncoder.encode(jsonDomainObject.get(dirtyFieldName).toString(), UTF8CS.name());
-				b.append(dirtyFieldName).append("=").append(value).append("&");
-			} catch (Exception ex) {
-				throw new RuntimeException("Failed to encode dirty field [" + dirtyFieldName + "]", ex);
-			}
-		}
-		return b.deleteCharAt(b.length()-1).toString();
-	}
-	
+
 	
 
 	/**
@@ -349,6 +222,7 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 	 * @param uriFillIns The values to fill in the uri template
 	 * @return the returned value
 	 */
+	@Override
 	protected Object apiCall(TypeToken<?> type, Channel channel, HttpMethod method, String opName, Object payload, String uri, Object...uriFillIns) {
 		final String[] domainHandlerNames = installDomainHandlers(type, channel.getPipeline());
 		try {			
@@ -372,6 +246,16 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 			removeDomainHandlers(domainHandlerNames, channel.getPipeline());
 		}		
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#transmit(org.helios.dashkuj.domain.Transmission[])
+	 */
+	@Override
+	public void transmit(Transmission... transmissions) {
+		
+	}
+	
 	
 	/**
 	 * Transmits the passed json object as a json body to the dashku server's transmission endpoint
@@ -399,65 +283,6 @@ public class HTTPDashku extends AbstractDashku implements ChannelDownstreamHandl
 			throw new DashkuAPIException("transmit call returned null", e);
 		}
 	}
-
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.jboss.netty.channel.ChannelDownstreamHandler#handleDownstream(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelEvent)
-	 */
-	@Override
-	public void handleDownstream(ChannelHandlerContext ctx, final ChannelEvent e) throws Exception {
-		if(e instanceof MessageEvent) {
-			final MessageEvent me = (MessageEvent)e;			
-			Object message = me.getMessage();
-			if(message instanceof DashkuHttpRequest) {
-				final DashkuHttpRequest request = (DashkuHttpRequest)message;
-				HttpRequest httpRequest = request.getHttpRequest();
-				
-				//httpRequest.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json");
-				httpRequest.addHeader(HttpHeaders.Names.ACCEPT, "application/json");
-				ChannelBuffer buff = request.getChannelBuffer();
-				int contentLength = buff.readableBytes();
-				if(contentLength>0) {					
-					httpRequest.setContent(buff);
-				}
-				HttpHeaders.setContentLength(httpRequest, contentLength);
-				Channel channel = e.getChannel();
-				ChannelFuture cf = Channels.future(channel);
-				cf.addListener(new ChannelFutureListener() {
-					@Override
-					public void operationComplete(ChannelFuture future) throws Exception {
-						if(future.isSuccess()) {
-							log.debug("Successfully sent API request [{}/{}/{}] to [{}]", request.getVersion(), request.getMethod(), request.getUri(), me.getRemoteAddress());
-						} else {
-							log.error("Failed to send API request [{}/{}/{}] to [{}]", request.getVersion(), request.getMethod(), request.getUri(), me.getRemoteAddress(), future.getCause());
-						}
-					}
-				});
-				ctx.sendDownstream(new DownstreamMessageEvent(channel, cf, request, me.getRemoteAddress()));
-				return;
-			}
-		}
-		ctx.sendDownstream(e);	
-	}
-
-	/**
-	 * Returns the current request timeout in ms.
-	 * @return the current request timeout in ms.
-	 */
-	public long getTimeout() {
-		return timeout;
-	}
-
-	/**
-	 * Sets the request timeout in ms.
-	 * @param timeout the request timeout in ms.
-	 */
-	public void setTimeout(long timeout) {
-		this.timeout = timeout;
-	}
-
-
 
 
 }

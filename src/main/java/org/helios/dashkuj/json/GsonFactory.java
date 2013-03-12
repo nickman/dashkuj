@@ -26,6 +26,7 @@ package org.helios.dashkuj.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 
 /**
  * <p>Title: GsonFactory</p>
@@ -48,6 +49,8 @@ public class GsonFactory {
 	
 	/** The timestamp format used by dashku */
 	public static final String JS_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+	/** Empty JSON const */
+	public static final String EMPTY_JSON = "{}";
 	
 	/**
 	 * Acquires the GsonFactory singleton instance
@@ -85,7 +88,21 @@ public class GsonFactory {
 	 * @return a pretty printing Gson
 	 */
 	public Gson printer() {
-		return builder.create();
+		return printer.create();
+	}
+	
+	
+	/**
+	 * Renders the passed object to a pretty printed JSON string
+	 * @param target the object to render
+	 * @return a pretty printed JSON string
+	 */
+	public static String renderToJson(Object target) {
+		if(target==null) return EMPTY_JSON;
+		if(target instanceof CharSequence) {
+			return getInstance().printer().toJson(new JsonParser().parse(target.toString()));
+		}
+		return getInstance().printer().toJson(target);
 	}
 	
 }
