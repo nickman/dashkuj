@@ -92,37 +92,12 @@ public abstract class AbstractHTTPDashku implements ChannelDownstreamHandler  {
 
 	/** Shared execution handler */
 	protected static final ExecutionHandler executionHandler = new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(5, 1048576, 1048576));
-	/** Encoder for collections of dashboards */
-	protected static final DashkuEncoder<Collection<Dashboard>> dashboardsEncoder = new DashkuEncoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
-	/** Encoder for dashboards */
-	protected static final DashkuEncoder<Dashboard> dashboardEncoder = new DashkuEncoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
-	/** Encoder for dashboard Ids */
-	protected static final DashkuEncoder<Status> statusEncoder = new DashkuEncoder<Status>(Dashboard.STATUS_TYPE); 
-	
-	/** Encoder for widgets */
-	protected static final DashkuEncoder<Widget> widgetEncoder = new DashkuEncoder<Widget>(Dashboard.WIDGET_TYPE); 
+	/** Dashku request encoder  */
+	protected static final DashkuEncoder dashkuEncoder = new DashkuEncoder();
 
-	/** Decoder for collections of dashboards */
-	protected static final DashkuDecoder<Collection<Dashboard>> dashboardsDecoder = new DashkuDecoder<Collection<Dashboard>>(Dashboard.DASHBOARD_COLLECTION_TYPE);
-	/** Decoder for dashboards */
-	protected static final DashkuDecoder<Dashboard> dashboardDecoder = new DashkuDecoder<Dashboard>(Dashboard.DASHBOARD_TYPE);
-	/** Decoder for dashboard IDs */ 
-	protected static final DashkuDecoder<Status> statusDecoder = new DashkuDecoder<Status>(Dashboard.STATUS_TYPE); 
+	/** Dashku response decoder */
+	protected static final DashkuDecoder dashkuDecoder = new DashkuDecoder();
 	
-	/** Decoder for widgets */
-	protected static final DashkuDecoder<Widget> widgetDecoder = new DashkuDecoder<Widget>(Dashboard.WIDGET_TYPE); 
-	
-	/** Domain object encoder/decoder pairs keyed by the type token of the domain object */
-	protected static final Map<TypeToken<?>, ChannelHandler[]> DOMAIN_HANDLERS;
-	
-	static {
-		Map<TypeToken<?>, ChannelHandler[]> map = new HashMap<TypeToken<?>, ChannelHandler[]>(4);
-		map.put(Dashboard.DASHBOARD_COLLECTION_TYPE, new ChannelHandler[]{dashboardsEncoder, dashboardsDecoder});
-		map.put(Dashboard.DASHBOARD_TYPE, new ChannelHandler[]{dashboardEncoder, dashboardDecoder});
-		map.put(Dashboard.WIDGET_TYPE, new ChannelHandler[]{widgetEncoder, widgetDecoder});
-		map.put(Dashboard.STATUS_TYPE, new ChannelHandler[]{statusEncoder, statusDecoder});
-		DOMAIN_HANDLERS = Collections.unmodifiableMap(map);
-	}
 	
 	/** The default timeout in ms. */
 	public static final long DEFAULT_REQUEST_TIMEOUT = 2000;
@@ -130,8 +105,6 @@ public abstract class AbstractHTTPDashku implements ChannelDownstreamHandler  {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
-	/** The name of the handler after which domain handlers should be inserted */
-	static final String PIPELINE_INSERT = "execution";
 	
 	/** An HTTP codec */
 	protected static final HttpClientCodec httpClientCodec = new HttpClientCodec(16384, 16384, 16384);
@@ -158,37 +131,15 @@ public abstract class AbstractHTTPDashku implements ChannelDownstreamHandler  {
 		pipeline.addLast("http-codec", httpClientCodec); 					// UP/DOWN
 		pipeline.addLast("aggregator", httpChunkAggregator);				// UP ONLY
 		pipeline.addLast("httpRequestBuilder", this);						// DOWN ONLY
+		pipeline.addLast("dashkuDecoder", dashkuDecoder);					// UP ONLY
+		pipeline.addLast("dashkuEncoder", dashkuEncoder);					// DOWN ONLY
 		//-- domain DECODER here --//										// UP ONLY
 		//-- domain ENCODER here --//										// DOWN ONLY
 		pipeline.addLast("execution", executionHandler);					// UP/DOWN
 		// SYNCH ONLY pipeline.addLast("synchreader", synchReader);						// UP ONLY		
 	}
 		
-	/**
-	 * Installs the domain encoder/decoder pair into the pipeline for the passed type
-	 * @param type The type of the domain object to install the encoder/decoder pair for 
-	 * @param pipeline The pipeline to install into
-	 * @return The names of the installed channel handlers
-	 */
-	protected String[] installDomainHandlers(TypeToken<?> type, ChannelPipeline pipeline) {
-		ChannelHandler[] handlers = DOMAIN_HANDLERS.get(type);
-		String[] names = new String[]{type.toString() + "-decoder", type.toString() + "-encoder"}; 
-		
-		pipeline.addBefore(PIPELINE_INSERT, names[1], handlers[1]);
-		pipeline.addBefore(PIPELINE_INSERT, names[0], handlers[0]);		
-		log.debug("Installed Domain Handlers for {}", Arrays.toString(names));
-		return names;
-	}
 	
-	/**
-	 * Removes the named channel handlers from the passed pipeline
-	 * @param names The names of the channel handlers to remove
-	 * @param pipeline The pipeline to remove from
-	 */
-	protected void removeDomainHandlers(String[] names, ChannelPipeline pipeline) {
-		pipeline.remove(names[0]);
-		pipeline.remove(names[1]);
-	}
 	
 	
 	/**

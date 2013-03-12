@@ -223,8 +223,7 @@ public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 	 * @return the returned value
 	 */
 	@Override
-	protected Object apiCall(TypeToken<?> type, Channel channel, HttpMethod method, String opName, Object payload, String uri, Object...uriFillIns) {
-		final String[] domainHandlerNames = installDomainHandlers(type, channel.getPipeline());
+	protected Object apiCall(TypeToken<?> type, Channel channel, HttpMethod method, String opName, Object payload, String uri, Object...uriFillIns) {		
 		try {			
 			channel.write(new DashkuHttpRequest(payload, HttpVersion.HTTP_1_1, method, uri, uriFillIns));
 			Object result = synchReader.read(timeout, TimeUnit.MILLISECONDS);
@@ -242,8 +241,6 @@ public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 			return result;
 		} catch (Exception ex) {
 			throw new DashkuAPIException(opName + " call exception", ex);
-		} finally {
-			removeDomainHandlers(domainHandlerNames, channel.getPipeline());
 		}		
 	}
 	

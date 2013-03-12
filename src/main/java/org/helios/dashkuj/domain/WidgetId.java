@@ -2,7 +2,7 @@
  * Helios, OpenSource Monitoring
  * Brought to you by the Helios Development Group
  *
- * Copyright 2007, Helios Development Group and individual contributors
+ * Copyright 2013, Helios Development Group and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -27,24 +27,24 @@ package org.helios.dashkuj.domain;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * <p>Title: DashboardId</p>
- * <p>Description: A simple wrapper for a dashku server supplied dashboard id. e.g.<br><b><code>{"dashboardId":"4fd1f55b7e9b8705a1000054"}</code></b></p> 
+ * <p>Title: WidgetId</p>
+ * <p>Description: A simple wrapper for a dashku server supplied widget id. e.g.<br><b><code>{"widgetId":"4fd331e38caaf987a7000052"}</code></b></p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.dashkuj.domain.DashboardId</code></p>
+ * <p><code>org.helios.dashkuj.domain.WidgetId</code></p>
  */
 
-public class DashboardId {
-	/** the ID of the dashboard being referenced */	
-	@SerializedName("dashboardId")	
-	protected String dashboardId = null;
+public class WidgetId {
+	/** the ID of the widget being referenced */
+	@SerializedName("widgetId")	
+	protected String widgetId = null;
 
 	/**
-	 * Returns the ID of the dashboard being referenced
-	 * @return the dashboardId
+	 * Returns the ID of the widget being referenced
+	 * @return the widgetId
 	 */
-	public String getDashboardId() {
-		return dashboardId;
+	public String getWidgetId() {
+		return widgetId;
 	}
 	
 	/**
@@ -53,8 +53,8 @@ public class DashboardId {
 	 */
 	@Override
 	public String toString() {
-		return String.format("DashboardID:%s", dashboardId);
+		return String.format("WidgetID:%s", widgetId);
 	}
 
-	
+
 }

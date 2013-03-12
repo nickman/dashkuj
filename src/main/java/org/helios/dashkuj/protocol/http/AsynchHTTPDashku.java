@@ -61,7 +61,7 @@ public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku
 	 * @param port The dashku server listening port
 	 * @param apiKey The dashku API key
 	 */
-	protected AsynchHTTPDashku(String apiKey, String host, int port) {
+	public AsynchHTTPDashku(String apiKey, String host, int port) {
 		super(apiKey, host, port);
 		pipeline.addLast("asynch-response-handler", this);
 	}
@@ -74,15 +74,12 @@ public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku
 	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
 		if(e instanceof MessageEvent) {
 			Object message = ((MessageEvent)e).getMessage();
-			if(message instanceof HttpResponse) {
-				HttpResponse response = (HttpResponse)message;
-				try {
-					
-				} catch (Exception ex) {
-					
-				}
-				return;
+			if(message!=null) {
+				log.info("Received ASYNCH Response of type [{}]-->[\n{}\n]", message.getClass().getName(), message);
+			} else {
+				log.warn("Received NULL ASYNCH Response"); 
 			}
+			
 		}
 		ctx.sendUpstream(e);
 		
@@ -283,15 +280,9 @@ public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku
 	 */
 	@Override
 	protected Object apiCall(TypeToken<?> type, final Channel channel, HttpMethod method, String opName, final Object payload, final String uri, final Object... uriFillIns) {
-		final String[] domainHandlerNames = installDomainHandlers(type, channel.getPipeline());
+
 		try {			
-			channel.write(new DashkuHttpRequest(payload, HttpVersion.HTTP_1_1, method, uri, uriFillIns)).addListener(new ChannelFutureListener() {
-				@Override
-				public void operationComplete(ChannelFuture future) throws Exception {
-					channel.getPipeline().remove(domainHandlerNames[0]);
-					
-				}
-			});
+			channel.write(new DashkuHttpRequest(payload, HttpVersion.HTTP_1_1, method, uri, uriFillIns));
 //			if(result==null) throw new DashkuAPIException(opName + " call returned null", new Throwable());
 //			if(log.isDebugEnabled()) {
 //				log.debug(opName + " returned  [{}->{}]", result.getClass().getName(), result);

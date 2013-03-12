@@ -48,33 +48,14 @@ import com.google.gson.reflect.TypeToken;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.dashkuj.handlers.DashkuEncoder</code></p>
- * @param <T> The type that this encoder encodes
  */
 @ChannelHandler.Sharable
-public class DashkuEncoder<T> extends OneToOneEncoder {
-	/** The type this instance will encode */
-	protected final TypeToken<T> type;
-	/** The underlying dashku domain type  */
-	protected final Class<T> domainType;
+public class DashkuEncoder extends OneToOneEncoder {
 	
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
 	
-	/**
-	 * Creates a new DashkuEncoder
-	 * @param type The type this instance will encode
-	 */
-	@SuppressWarnings("unchecked")
-	public DashkuEncoder(TypeToken<T> type) {
-		this.type = type;
-		Type t = this.type.getType();
-		if(t instanceof ParameterizedType) {
-			domainType = (Class<T>)((ParameterizedType)t).getActualTypeArguments()[0];
-		} else {
-			domainType = (Class<T>)t;
-		}
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -82,28 +63,26 @@ public class DashkuEncoder<T> extends OneToOneEncoder {
 	 */
 	@Override
 	protected Object encode(ChannelHandlerContext ctx, Channel channel, Object message) throws Exception {
-		Gson gson = GsonFactory.getInstance().newGson();
-		if(type.getType().equals(message)) {			
-			return ChannelBuffers.wrappedBuffer(gson.toJson(message, type.getType()).getBytes());
+		final Gson gson = GsonFactory.getInstance().newGson();
+		if(message instanceof CharSequence) {
+			return ChannelBuffers.wrappedBuffer(message.toString().getBytes());
+		} else if(message instanceof JsonElement) {
+			return ChannelBuffers.wrappedBuffer(gson.toJson((JsonElement)message).getBytes());
 		} else if(message instanceof DashkuHttpRequest) {
 			DashkuHttpRequest dashkuRequest = (DashkuHttpRequest)message; 
 			Object payload = dashkuRequest.getPayload();
 			if(payload==null) return dashkuRequest.getHttpRequest();
-			if(domainType.isInstance(payload)) {
-				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(gson.toJson(message, domainType).getBytes()));
-				return dashkuRequest.getHttpRequest();
-			} else if(payload instanceof JsonObject) {
+			if(payload instanceof CharSequence) {
 				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(payload.toString().getBytes()));
-				return dashkuRequest.getHttpRequest();
-			} else if(payload instanceof CharSequence) {
-				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(payload.toString().getBytes()));
-				return dashkuRequest.getHttpRequest();				
+			} else if(payload instanceof JsonElement) {
+				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(gson.toJson((JsonElement)payload).toString().getBytes()));
+			} else {
+				dashkuRequest.setChannelBuffer(ChannelBuffers.wrappedBuffer(gson.toJson(payload).toString().getBytes()));
 			}
-		} else if(message instanceof JsonObject) {			
-			log.info("Sending Domain Object Update [\n{}\n]", message);
-			return ChannelBuffers.wrappedBuffer(gson.toJson((JsonElement)message).getBytes());
+			return dashkuRequest.getHttpRequest();
+		} else {
+			return ChannelBuffers.wrappedBuffer(gson.toJson(message).getBytes());
 		}
-		return message;
 	}
 	
 	

@@ -25,11 +25,15 @@
 package org.helios.dashkuj.handlers;
 
 import java.io.InputStreamReader;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collection;
 
 import org.helios.dashkuj.api.DashkuAPIException;
+import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.DashboardId;
 import org.helios.dashkuj.domain.Status;
+import org.helios.dashkuj.domain.Widget;
+import org.helios.dashkuj.domain.WidgetId;
 import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
@@ -42,13 +46,15 @@ import org.jboss.netty.channel.ChannelLocal;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.UpstreamMessageEvent;
-import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -57,17 +63,16 @@ import com.google.gson.reflect.TypeToken;
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.dashkuj.handlers.DashkuDecoder</code></p>
- * @param <T> The type that this decoder decodes
  */
 @ChannelHandler.Sharable
-public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
-	/** The type this instance will decode */
-	protected final TypeToken<T> type;
-	/** The underlying dashku domain type  */
-	protected final Class<T> domainType;
-	
+public class DashkuDecoder extends SimpleChannelUpstreamHandler {
 	/** Instance logger */
 	protected final Logger log = LoggerFactory.getLogger(getClass());
+	
+	/** Dedicated gson instance */
+	protected final Gson gson = GsonFactory.getInstance().newGson();
+	/** Dedicated gson printer */
+	protected final Gson printer = GsonFactory.getInstance().printer();
 	
 	private static final DirectChannelBufferFactory bufferFactory = new DirectChannelBufferFactory();
 
@@ -100,20 +105,7 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 	}
 	
 	
-	/**
-	 * Creates a new DashkuDecoder
-	 * @param type The type this instance will decode
-	 */
-	@SuppressWarnings("unchecked")
-	public DashkuDecoder(TypeToken<T> type) {
-		this.type = type;
-		Type t = this.type.getType();
-		if(t instanceof ParameterizedType) {
-			domainType = (Class<T>)((ParameterizedType)t).getActualTypeArguments()[0];
-		} else {
-			domainType = (Class<T>)t;
-		}
-	}
+
 
 
 	/**
@@ -172,25 +164,71 @@ public class DashkuDecoder<T> extends SimpleChannelUpstreamHandler {
 	 * @param responseStatus The http response status
 	 * @return the read object
 	 */
-	protected Object decodeDomainObject(ChannelBuffer content, HttpResponseStatus responseStatus) {
-		Object readObject = null;
+	protected Object decodeDomainObject(ChannelBuffer content, HttpResponseStatus responseStatus) {		
 		InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(content, content.readableBytes()));
-		Gson gson = GsonFactory.getInstance().newGson();
-		if(responseStatus.getCode()>=200 && responseStatus.getCode()<300) {
-			readObject = gson.fromJson(jsonReader, type.getType());
-			if(readObject instanceof Status) {
-				((Status)readObject).responseCode(responseStatus);
-			}										
-		} else {
-			try {
-				readObject = gson.fromJson(jsonReader, Status.class);
-				((Status)readObject).responseCode(responseStatus);
-				readObject = new DashkuAPIException((Status)readObject);
-			} catch (Exception ex) {
-				readObject = new DashkuAPIException("UpstreamHandler for [" + type + "] failed", ex);
+		try {
+			JsonElement jsonElement = new JsonParser().parse(jsonReader);
+			TypeToken<?> t = sniffReturnType(jsonElement);
+			if(t==null) return jsonElement;
+			return gson.fromJson(jsonElement, t.getType());
+		} catch (Exception ex) {
+			log.error("Failed to decode http response", ex);
+			return null;
+		}
+		
+//		if(responseStatus.getCode()>=200 && responseStatus.getCode()<300) {
+//			readObject = gson.fromJson(jsonReader, type.getType());
+//			if(readObject instanceof Status) {
+//				((Status)readObject).responseCode(responseStatus);
+//			}										
+//		} else {
+//			try {
+//				readObject = gson.fromJson(jsonReader, Status.class);
+//				((Status)readObject).responseCode(responseStatus);
+//				readObject = new DashkuAPIException((Status)readObject);
+//			} catch (Exception ex) {
+//				readObject = new DashkuAPIException("UpstreamHandler for [" + type + "] failed", ex);
+//			}
+//		}
+		
+	}
+	
+	/** Type token for a collection of dashboards. One of the standard sniffed type tokens */
+	public static final TypeToken<Collection<Dashboard>> TT_DASHBOARD_COLLECTION = Dashboard.DASHBOARD_COLLECTION_TYPE;
+	/** Type token for a dashboard. One of the standard sniffed type tokens */
+	public static final TypeToken<Dashboard> TT_DASHBOARD = Dashboard.DASHBOARD_TYPE;
+	/** Type token for a widget. One of the standard sniffed type tokens */
+	public static final TypeToken<Widget> TT_WIDGET = Dashboard.WIDGET_TYPE;
+	/** Type token for a status. One of the standard sniffed type tokens */
+	public static final TypeToken<Status> TT_STATUS = Dashboard.STATUS_TYPE;
+	/** Type token for a dashboard id. One of the standard sniffed type tokens */
+	public static final TypeToken<DashboardId> TT_DASHBOARD_ID = Dashboard.DASHBOARD_ID_TYPE;	
+	/** Type token for a widget id. One of the standard sniffed type tokens */
+	public static final TypeToken<WidgetId> TT_WIDGET_ID = Dashboard.WIDGET_ID_TYPE;	
+	
+	
+	/**
+	 * Inspects the passed element and determines what it's type is
+	 * @param jsonElement The element to examine
+	 * @return the determined {@link TypeToken} or null if one could not be determined.
+	 */
+	protected TypeToken<?> sniffReturnType(JsonElement jsonElement) {
+		if(jsonElement.isJsonArray() && jsonElement.getAsJsonArray().get(0).getAsJsonObject().has("screenWidth")) {
+			return TT_DASHBOARD_COLLECTION;
+		} else if(jsonElement.isJsonObject()) {
+			JsonObject jsonObject = jsonElement.getAsJsonObject();
+			if(jsonObject.has("screenWidth")) {
+				return TT_DASHBOARD;
+			} else if(jsonObject.has("dashboardId")) {
+				return TT_DASHBOARD_ID;
+			} else if(jsonObject.has("json")) {
+				return TT_WIDGET;
+			} else if(jsonObject.has("widgetId")) {
+				return TT_WIDGET_ID;
 			}
 		}
-		return readObject;		
+		log.warn("Failed to identify type of json response [{}]", printer.toJson(jsonElement));
+		return null;
 	}
 	
 	/**

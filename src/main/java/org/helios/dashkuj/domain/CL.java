@@ -24,10 +24,15 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.net.URLEncoder;
 
+import org.helios.dashkuj.api.AsynchDashku;
+import org.helios.dashkuj.api.AsynchDashku.DomainObjectListener;
+import org.helios.dashkuj.protocol.http.AsynchHTTPDashku;
 import org.helios.dashkuj.protocol.http.HTTPDashku;
-import org.helios.dashkuj.redis.RedisPubSub;
+import org.helios.dashkuj.util.URLHelper;
 
 import com.google.gson.JsonObject;
 
@@ -69,33 +74,42 @@ public class CL {
 			
 			//HTTPDashku http = new HTTPDashku("31e3b92f-dcf3-468d-bd97-53327c6786a9", "dashku", 3000);
 			HTTPDashku http = new HTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
+			AsynchHTTPDashku ahttp = new AsynchHTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
 			String contentUri = "/api/dashboards/513bd839e9fc007c07000003/widgets/513e64d36ee3bab80600005c/downloads/dashku_513e64d36ee3bab80600005c.rb";
 			log("Retrieving content as string: [" + contentUri + "]");
-			String content = http.getResourceString(contentUri);
-			log("Content:\n" + content);
+			ahttp.getResourceString(contentUri, new DomainObjectListener<String>() {
+				public void onAsynchError(AsynchDashku asynchDashku, String requestName, Throwable cause, Object... args) {
+					log("RESOURCE ERROR"); cause.printStackTrace(System.err);					
+				}
+				public void onResponse(String response, AsynchDashku asynchDashku) {
+					log("RESOURCE: [" + response + "]");					
+				}				
+			});
+			Thread.sleep(12000000);
+//			log("Content:\n" + content);
 //			RedisPubSub pubSub = RedisPubSub.getInstance("dashku", 6379).start();
 //			pubSub.psubscribe("*");
 //			pubSub.subscribe("*");
 			
-			Thread.sleep(12000000);
+//			Thread.sleep(12000000);
 //			http.setTimeout(60000);
-//			Dashboard d = new Dashboard();
-//			d.setName("JVM Monitor");
-//			d.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
-//			d.setScreenWidth(ScreenWidth.fluid);
-//			http.createDashboard(d);
-//			log("Created new dashboard:" + d);
-//			Widget w = new Widget();
-//			w.setCss("#heapSavant {\n font-weight: bold; \n font-size: 24pt;\n}");
-//			w.setHeight(150);
-//			w.setWidth(300);
-//			w.setHtml(URLEncoder.encode("<div id=\"heapSavant\"></div>", "UTF-8"));
-//			w.setJson(URLEncoder.encode("{max=100,alloc=60,used=30}", "UTF-8"));
-//			w.setName("HeapSpace");
-//			w.setScriptType(ScriptType.javascript);
-//			w.setScript(URLEncoder.encode(new String(URLHelper.getBytesFromURL(URLHelper.toURL(new File("src/test/resources/scripts/js/newWidgetScript.js")))), "UTF-8"));
-//			http.createWidget(d.getId(), w);
-//			log("Created new widget:" + w);
+			Dashboard d = new Dashboard();
+			d.setName("JVM Monitor");
+			d.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
+			d.setScreenWidth(ScreenWidth.fluid);
+			http.createDashboard(d);
+			log("Created new dashboard:" + d);
+			Widget w = new Widget();
+			w.setCss("#heapSavant {\n font-weight: bold; \n font-size: 24pt;\n}");
+			w.setHeight(150);
+			w.setWidth(300);
+			w.setHtml(URLEncoder.encode("<div id=\"heapSavant\"></div>", "UTF-8"));
+			w.setJson(URLEncoder.encode("{max=100,alloc=60,used=30}", "UTF-8"));
+			w.setName("HeapSpace");
+			w.setScriptType(ScriptType.javascript);
+			w.setScript(URLEncoder.encode(new String(URLHelper.getBytesFromURL(URLHelper.toURL(new File("src/test/resources/scripts/js/newWidgetScript.js")))), "UTF-8"));
+			http.createWidget(d.getId(), w);
+			log("Created new widget:" + w);
 //			
 //			log("Deleting Widget");
 //			String deletedWid = http.deleteWidget(d.getId(), w.getId());
@@ -127,17 +141,17 @@ public class CL {
 //			transmission.add("colours", colours);
 			JsonObject msg = new JsonObject();
 			msg.addProperty("message", "Hello Sean Shih");
-			http.transmit("513e4333d7b1a5e709000087", msg);
-			http.transmit("5138a8bf124965c506000037", transmission);
+//			http.transmit("513e4333d7b1a5e709000087", msg);
+//			http.transmit("5138a8bf124965c506000037", transmission);
 			for(int i = 0; i < 10000; i++) {
 				transmission.addProperty("bigNumber", i);
-				http.transmit("5138a8bf124965c506000037", transmission);
+				//http.transmit("5138a8bf124965c506000037", transmission);
 				JsonObject heap = new JsonObject();
 				heap.addProperty("amount", ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()*((i%30)+1));
 				heap.addProperty("total", ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
 				heap.add("colours", colours);
-				http.transmit("5138a957124965c50600003d", heap);
-				Thread.sleep(1000);
+//				http.transmit("5138a957124965c50600003d", heap);
+//				Thread.sleep(1000);
 			}
 //			Collection<Dashboard> dboards = http.getDashboards();
 //			log("Retrieved [" + dboards.size() + "] Dashboard Instances");
