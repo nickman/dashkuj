@@ -182,7 +182,7 @@ public interface AsynchDashku {
 	 * @param resourceUri The URI of the resource
 	 * @param repsonseListener The listener that handles the async response
 	 */
-	public void getResourceString(CharSequence resourceUri, DomainObjectListener<String> repsonseListener);
+	public void getResourceString(CharSequence resourceUri, AsynchHandler<Object> repsonseListener);
 	
 	/**
 	 * Returns the dashku host or ip address 

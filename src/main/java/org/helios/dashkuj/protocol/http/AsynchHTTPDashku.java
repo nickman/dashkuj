@@ -25,22 +25,24 @@
 package org.helios.dashkuj.protocol.http;
 
 import java.util.Collection;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.helios.dashkuj.api.AsynchDashku;
+import org.helios.dashkuj.api.AsynchHandler;
+import org.helios.dashkuj.api.AsynchHandler.AsyncHandlerFactory;
 import org.helios.dashkuj.api.DashkuAPIException;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
 import org.jboss.netty.handler.codec.http.HttpMethod;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 
 import com.google.gson.reflect.TypeToken;
@@ -54,7 +56,10 @@ import com.google.gson.reflect.TypeToken;
  */
 
 public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku, ChannelUpstreamHandler   {
-
+	/** The handler queue */
+	protected final BlockingQueue<AsynchHandler<Object>> pendingQueue = new ArrayBlockingQueue<AsynchHandler<Object>>(100, true);
+	/** The handler factory */
+	protected final AsyncHandlerFactory<Object> asyncHandlerFactory;
 	/**
 	 * Creates a new AsynchHTTPDashku
 	 * @param host The dashku server name or ip address
@@ -63,7 +68,22 @@ public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku
 	 */
 	public AsynchHTTPDashku(String apiKey, String host, int port) {
 		super(apiKey, host, port);
+		asyncHandlerFactory = new AsyncHandlerFactory<Object>(pendingQueue, pipeline);
 		pipeline.addLast("asynch-response-handler", this);
+	}
+	
+	public static void main(String[] args) {
+		log("AsynchHTTPDashku Test");
+		AsynchHTTPDashku ahttp = new AsynchHTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
+		String contentUri = "/api/dashboards/513bd839e9fc007c07000003/widgets/513e64d36ee3bab80600005c/downloads/dashku_513e64d36ee3bab80600005c.rb";
+		log("Retrieving content as string: [" + contentUri + "]");
+		ahttp.getResourceString(contentUri, ahttp.asyncHandlerFactory.handler());
+		try { Thread.currentThread().join(5000); } catch (Exception ex) {}
+		
+	}
+	
+	public static void log(Object msg) {
+		System.out.println(msg);
 	}
 	
 	/**
@@ -260,16 +280,18 @@ public class AsynchHTTPDashku extends AbstractHTTPDashku implements AsynchDashku
 		transmit(null, transmissions);
 
 	}
+	
+	/** Serial number generator for pipeline add names */
+	protected final AtomicLong handlerSerial = new AtomicLong(0L);
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.AsynchDashku#getResourceString(java.lang.CharSequence, org.helios.dashkuj.api.AsynchDashku.DomainObjectListener)
+	 * @see org.helios.dashkuj.api.AsynchDashku#getResourceString(java.lang.CharSequence, org.helios.dashkuj.api.AsynchHandler)
 	 */
 	@Override
-	public void getResourceString(final CharSequence resourceUri, final DomainObjectListener<String> reponseListener) {
-		if(resourceUri==null) {
-			reponseListener.onAsynchError(this, "getResourceString", new Exception("The requested resourceUri was null"), resourceUri);
-		}		
+	public void getResourceString(final CharSequence resourceUri, final AsynchHandler<Object> responseHandler) {
+		if(resourceUri==null) throw new IllegalArgumentException("The passed resource URI was null", new Throwable());
+		pipeline.addLast("" + System.identityHashCode(responseHandler), responseHandler);
 		channel.write(new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, resourceUri.toString()));
 	}
 

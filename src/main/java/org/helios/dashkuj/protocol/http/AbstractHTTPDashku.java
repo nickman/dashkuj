@@ -26,17 +26,8 @@ package org.helios.dashkuj.protocol.http;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
-import org.helios.dashkuj.api.AbstractDashku;
 import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
-import org.helios.dashkuj.domain.Dashboard;
-import org.helios.dashkuj.domain.Status;
-import org.helios.dashkuj.domain.Widget;
 import org.helios.dashkuj.handlers.DashkuDecoder;
 import org.helios.dashkuj.handlers.DashkuEncoder;
 import org.helios.dashkuj.json.GsonFactory;
@@ -47,7 +38,6 @@ import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
@@ -60,6 +50,10 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
+import org.jboss.netty.handler.logging.LoggingHandler;
+import org.jboss.netty.logging.InternalLogLevel;
+import org.jboss.netty.logging.InternalLoggerFactory;
+import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,8 +105,15 @@ public abstract class AbstractHTTPDashku implements ChannelDownstreamHandler  {
 	/** An HTTP chunk aggregator */
 	protected static final HttpChunkAggregator httpChunkAggregator = new HttpChunkAggregator(1048576);
 	
+	/** Logging handler */
+	protected static final LoggingHandler loggingHandler = new LoggingHandler("HTTPDashku", InternalLogLevel.DEBUG, true);
+	
 	/** A UTF-8 charset for URL encoding */
 	public static final Charset UTF8CS = Charset.forName("UTF-8");
+	
+	static {
+		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
+	}
 	
 	/**
 	 * Creates a new HTTPDashku
@@ -136,7 +137,8 @@ public abstract class AbstractHTTPDashku implements ChannelDownstreamHandler  {
 		//-- domain DECODER here --//										// UP ONLY
 		//-- domain ENCODER here --//										// DOWN ONLY
 		pipeline.addLast("execution", executionHandler);					// UP/DOWN
-		// SYNCH ONLY pipeline.addLast("synchreader", synchReader);						// UP ONLY		
+		// SYNCH ONLY pipeline.addLast("synchreader", synchReader);						// UP ONLY
+		pipeline.addLast("loggingx", loggingHandler);
 	}
 		
 	

@@ -46,6 +46,7 @@ import org.jboss.netty.channel.ChannelLocal;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.UpstreamMessageEvent;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
@@ -125,7 +126,11 @@ public class DashkuDecoder extends SimpleChannelUpstreamHandler {
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {		
 		Channel channel = event.getChannel();
 		HttpResponse response = (HttpResponse)event.getMessage();
-		ctx.sendUpstream(new UpstreamMessageEvent(channel, decodeDomainObject(response.getContent(), response.getStatus()), event.getRemoteAddress()));
+		if("application/json".equals(HttpHeaders.getHeader(response, HttpHeaders.Names.CONTENT_TYPE).toLowerCase())) {
+			ctx.sendUpstream(new UpstreamMessageEvent(channel, decodeDomainObject(response.getContent(), response.getStatus()), event.getRemoteAddress()));
+		} else {
+			ctx.sendUpstream(new UpstreamMessageEvent(channel, response.getContent(), event.getRemoteAddress()));
+		}
 	}
 	
 /*	public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {		

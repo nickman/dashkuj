@@ -77,14 +77,14 @@ public class CL {
 			AsynchHTTPDashku ahttp = new AsynchHTTPDashku("f136167f-5026-440c-a77a-d38b5441206c", "dashku", 3000);
 			String contentUri = "/api/dashboards/513bd839e9fc007c07000003/widgets/513e64d36ee3bab80600005c/downloads/dashku_513e64d36ee3bab80600005c.rb";
 			log("Retrieving content as string: [" + contentUri + "]");
-			ahttp.getResourceString(contentUri, new DomainObjectListener<String>() {
-				public void onAsynchError(AsynchDashku asynchDashku, String requestName, Throwable cause, Object... args) {
-					log("RESOURCE ERROR"); cause.printStackTrace(System.err);					
-				}
-				public void onResponse(String response, AsynchDashku asynchDashku) {
-					log("RESOURCE: [" + response + "]");					
-				}				
-			});
+//			ahttp.getResourceString(contentUri, new DomainObjectListener<String>() {
+//				public void onAsynchError(AsynchDashku asynchDashku, String requestName, Throwable cause, Object... args) {
+//					log("RESOURCE ERROR"); cause.printStackTrace(System.err);					
+//				}
+//				public void onResponse(String response, AsynchDashku asynchDashku) {
+//					log("RESOURCE: [" + response + "]");					
+//				}				
+//			});
 			Thread.sleep(12000000);
 //			log("Content:\n" + content);
 //			RedisPubSub pubSub = RedisPubSub.getInstance("dashku", 6379).start();

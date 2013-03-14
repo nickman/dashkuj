@@ -24,23 +24,19 @@
  */
 package org.helios.dashkuj.handlers;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-
 import org.helios.dashkuj.json.GsonFactory;
 import org.helios.dashkuj.protocol.http.DashkuHttpRequest;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * <p>Title: DashkuEncoder</p>
@@ -64,6 +60,9 @@ public class DashkuEncoder extends OneToOneEncoder {
 	@Override
 	protected Object encode(ChannelHandlerContext ctx, Channel channel, Object message) throws Exception {
 		final Gson gson = GsonFactory.getInstance().newGson();
+		if(message instanceof HttpRequest) {
+			return message;
+		}
 		if(message instanceof CharSequence) {
 			return ChannelBuffers.wrappedBuffer(message.toString().getBytes());
 		} else if(message instanceof JsonElement) {
