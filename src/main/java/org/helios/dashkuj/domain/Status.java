@@ -24,7 +24,11 @@
  */
 package org.helios.dashkuj.domain;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferIndexFinder;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.vertx.java.core.buffer.Buffer;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -50,6 +54,50 @@ public class Status {
 	@SerializedName("widgetId")
 	protected String widgetId;
 	
+	
+	/** The byte pattern for a status json message with double quotes */
+	public static final ChannelBuffer STATUS_PATTERN_DQ = ChannelBuffers.unmodifiableBuffer(ChannelBuffers.wrappedBuffer("{\"status\":".getBytes()));
+	/** The byte pattern for a status json message with single quotes */
+	public static final ChannelBuffer STATUS_PATTERN_SQ = ChannelBuffers.unmodifiableBuffer(ChannelBuffers.wrappedBuffer("{'status':".getBytes()));
+	/** The minimum length of a status message */
+	public static final int MIN_STATUS_SIZE = "{'status':''}".getBytes().length;
+	/** The length of leading pattern */
+	public static final int LEADER_STATUS_SIZE = "{'status':".getBytes().length;
+	
+	
+	/** A ChannelBufferIndexFinder for sniffing channel buffers for the status json signature */
+	public static final ChannelBufferIndexFinder STATUS_PATTERN_FINDER = new ChannelBufferIndexFinder() {
+		
+		/**
+		 * {@inheritDoc}
+		 * @see org.jboss.netty.buffer.ChannelBufferIndexFinder#find(org.jboss.netty.buffer.ChannelBuffer, int)
+		 */
+		public boolean find(ChannelBuffer buffer, int guessedIndex) {
+			if(buffer.readableBytes()< guessedIndex + MIN_STATUS_SIZE) return false;
+			ChannelBuffer slice = buffer.slice(guessedIndex, LEADER_STATUS_SIZE);
+			return slice.equals(STATUS_PATTERN_DQ) || slice.equals(STATUS_PATTERN_SQ);			
+		}
+	};
+	
+	/**
+	 * Determines if the passed buffer contains a signature suggesting it is the JSON for a Status entity
+	 * @param buffer the buffer to test 
+	 * @return true if the passed buffer contains a signature suggesting it is the JSON for a Status entity, false otherwise
+	 */
+	public static boolean containsStatus(Buffer buffer) {
+		if(buffer==null) return false;
+		return containsStatus(buffer.getChannelBuffer());
+	}
+	
+	/**
+	 * Determines if the passed buffer contains a signature suggesting it is the JSON for a Status entity
+	 * @param buffer the buffer to test 
+	 * @return true if the passed buffer contains a signature suggesting it is the JSON for a Status entity, false otherwise
+	 */
+	public static boolean containsStatus(ChannelBuffer buffer) {
+		if(buffer==null) return false;
+		return buffer.indexOf(0, buffer.readableBytes()-1, STATUS_PATTERN_FINDER)!=-1;
+	}
 	
 	/**
 	 * Returns the dashboard id, or null if one was not set

@@ -24,14 +24,22 @@
  */
 package org.helios.dashkuj.domain;
 
+import org.vertx.java.core.buffer.Buffer;
+
 /**
  * <p>Title: DomainUnmarshaller</p>
  * <p>Description: </p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.dashkuj.domain.DomainUnmarshaller</code></p>
+ * @param <T> The expected type of the unmarshaller
  */
 
-public interface DomainUnmarshaller {
-
+public interface DomainUnmarshaller<T> {
+	/**
+	 * Unmarshalls the passed buffer into a domain object
+	 * @param buffer A buffer of content to unmarshall
+	 * @return the unmarshalled object
+	 */
+	public T unmarshall(Buffer buffer);
 }

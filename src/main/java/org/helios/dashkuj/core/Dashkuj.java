@@ -24,11 +24,14 @@
  */
 package org.helios.dashkuj.core;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.core.apiimpl.DashkuImpl;
+import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.ScreenWidth;
 import org.vertx.java.core.Vertx;
 
 /**
@@ -69,9 +72,22 @@ public class Dashkuj {
 	
 	public static void main(String[] args) {
 		log("Dashkuj test");
-		Dashku d = Dashkuj.getInstance().getDashku("ad161495-cb13-4b72-99ad-c9b9bf5a2c03", "dashku", 3000);
-		d.getDashboards();
-		try { Thread.currentThread().join(30000); } catch (Exception e) {}
+		Dashku d = Dashkuj.getInstance().getDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c4928", "dashku", 3000);
+		//Dashku d = Dashkuj.getInstance().getDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c492X", "dashku", 3000);
+		Collection<Dashboard> dboards = d.getDashboards();
+		log("Acquired [" + dboards.size() + "] Dashboards");
+		for(Dashboard db: dboards) {
+			Dashboard sdb = d.getDashboard(db.getId());
+			log("Single Dash:[" + sdb.getName() + "/" + sdb.getId());
+		}
+		Dashboard newDash = new Dashboard();
+		newDash.setName("JVM Monitor");
+		newDash.setCss("#salesNumber {\n font-weight: bold; \n font-size: 24pt;\n}");
+		newDash.setScreenWidth(ScreenWidth.fixed);
+		String id = d.createDashboard(newDash);
+		log("Created new dashboard:" + id);
+		
+		
 	}
 	
 	public static void log(Object msg) {

@@ -24,13 +24,19 @@
  */
 package org.helios.dashkuj.core.apiimpl;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Map;
 
+import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
+import org.helios.dashkuj.json.GsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientResponse;
+
+import com.google.gson.JsonObject;
 
 /**
  * <p>Title: AbstractDashku</p>
@@ -57,6 +63,10 @@ public class AbstractDashku {
 	
 	/** The default request timeout in ms. */
 	public static final long DEFAULT_TIMEOUT = 2000;
+	
+	/** A UTF-8 charset for URL encoding */
+	public static final Charset UTF8CS = Charset.forName("UTF-8");
+	
 
 	/**
 	 * Creates a new AbstractDashku
@@ -117,7 +127,7 @@ public class AbstractDashku {
 	 */
 	public static String render(HttpClientResponse event, Buffer data) {
 		StringBuilder b = new StringBuilder("HttpClientResponse [");
-		b.append("\n\tStatus:").append(event.statusMessage).append(event.statusCode);
+		b.append("\n\tStatus:").append(event.statusMessage).append(" [").append(event.statusCode).append("]");
 		b.append("\n\tData Size:").append(data.length());		
 		if(!event.headers().isEmpty()) {
 			b.append("\n\tHeaders:");
@@ -138,6 +148,56 @@ public class AbstractDashku {
 		return b.toString();
 	}
 
+	/**
+	 * Returns the client request timeout in ms.
+	 * @return the client request timeout in ms.
+	 */
+	public long getTimeout() {
+		return timeout;
+	}
+
+	/**
+	 * Sets the client request timeout in ms.
+	 * @param timeout the client request timeout in ms.
+	 */
+	public void setTimeout(long timeout) {
+		this.timeout = timeout;
+	}
+
+	/**
+	 * Builds a post body in JSON format to send the dirty fields for the passed domain object
+	 * @param domainObject the domain object to generate the diff post for
+	 * @return the diff post body
+	 */
+	protected String buildDirtyUpdatePostJSON(AbstractDashkuDomainObject domainObject) {
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newNoSerGson().toJsonTree(domainObject).getAsJsonObject();
+		JsonObject diffs = new JsonObject();
+		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
+			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
+		}
+		return diffs.toString();
+	}
+	
+	/**
+	 * Builds a post body in post body format to send the dirty fields for the passed domain object.
+	 * The field values are URL encoded. 
+	 * @param domainObject the domain object to generate the diff post for
+	 * @return the diff post body
+	 */
+	protected String buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
+		StringBuilder b = new StringBuilder();
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();		
+		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
+			try {
+				String value = URLEncoder.encode(jsonDomainObject.get(dirtyFieldName).toString(), UTF8CS.name());
+				b.append(dirtyFieldName).append("=").append(value).append("&");
+			} catch (Exception ex) {
+				throw new RuntimeException("Failed to encode dirty field [" + dirtyFieldName + "]", ex);
+			}
+		}
+		return b.deleteCharAt(b.length()-1).toString();
+	}
+	
 	
 
 }

@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.json;
 
+import org.helios.dashkuj.domain.Dashboard;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -44,8 +46,19 @@ public class GsonFactory {
 	
 	/** The configured builder */
 	private final GsonBuilder builder;
+	/** The builder instance */
+	private final Gson builderInstance;
+	
+	/** The configured no-serializer builder */
+	private final GsonBuilder noSerBuilder;
+	/** The no-serializer instance */
+	private final Gson noSerInstance;
+	
+	
 	/** The configured printer */
 	private final GsonBuilder printer;
+	/** The configured printer instance */
+	private final Gson printerInstance;
 	
 	/** The timestamp format used by dashku */
 	public static final String JS_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -71,8 +84,14 @@ public class GsonFactory {
 	 * Creates a new GsonFactory
 	 */
 	private GsonFactory() {
+		noSerBuilder = new GsonBuilder().setDateFormat(JS_DATE_FORMAT).serializeNulls();
+		noSerInstance = noSerBuilder.create();		
 		builder = new GsonBuilder().setDateFormat(JS_DATE_FORMAT).serializeNulls();
+		builder.registerTypeAdapter(Dashboard.class, new Dashboard.DashboardTypeAdapter());
+		builderInstance = builder.create();
 		printer = new GsonBuilder().setDateFormat(JS_DATE_FORMAT).serializeNulls().setPrettyPrinting();
+		printer.registerTypeAdapter(Dashboard.class, new Dashboard.DashboardTypeAdapter());
+		printerInstance = printer.create();
 	}
 	
 	/**
@@ -80,7 +99,15 @@ public class GsonFactory {
 	 * @return a new {@link Gson} instance
 	 */
 	public Gson newGson() {
-		return builder.create();
+		return builderInstance;
+	}
+	
+	/**
+	 * Returns a gson instance with no serializers/deserializers registered
+	 * @return a gson instance with no serializers/deserializers registered
+	 */
+	public Gson newNoSerGson() {
+		return noSerInstance;
 	}
 	
 	/**
@@ -88,7 +115,7 @@ public class GsonFactory {
 	 * @return a pretty printing Gson
 	 */
 	public Gson printer() {
-		return printer.create();
+		return printerInstance;
 	}
 	
 	

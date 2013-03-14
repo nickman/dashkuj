@@ -30,10 +30,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.DomainUnmarshaller;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
@@ -51,7 +52,7 @@ import org.vertx.java.core.http.HttpClientResponse;
  * <p><code>org.helios.dashkuj.core.apiimpl.DashkuImpl</code></p>
  */
 
-public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpClientResponse> {
+public class DashkuImpl extends AbstractDashku implements Dashku {
 
 	/**
 	 * Creates a new DashkuImpl
@@ -71,16 +72,100 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 	@Override
 	public Collection<Dashboard> getDashboards() {
 		log.debug("Calling getDashboards()");
-		client.get(String.format(URI_GET_DASHBOARDS, apiKey), this).setTimeout(timeout).end();
-		return null;
+		SynchronousResponse<Collection<Dashboard>> responder = newSynchronousResponse(Dashboard.DASHBOARD_COLLECTION_UNMARSHALLER);
+		client.get(String.format(URI_GET_DASHBOARDS, apiKey), responder).setTimeout(timeout).end();
+		return responder.getResponse();
 	}
 	
-	protected class SynchronousResponse<T> implements Future<T> {
+	
+	
+	/**
+	 * <p>Title: SynchronousResponse</p>
+	 * <p>Description: A future for making the http request handling synchronous</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.dashkuj.core.apiimpl.DashkuImpl.SynchronousResponse</code></p>
+	 * @param <T> The expected type of the response
+	 */
+	protected class SynchronousResponse<T> implements Future<T>, Handler<HttpClientResponse> {
+		/** The completion latch */
 		protected final CountDownLatch latch = new CountDownLatch(1);
-		protected final HttpClientRequest request;
-		protected final AtomicBoolean sent = new AtomicBoolean(false);
+		/** The domain unmarshaller */
+		protected final DomainUnmarshaller<T> unmarshaller;
+		/** The final return value */
+		protected final AtomicReference<T> result = new AtomicReference<T>(null); 
+		/** The exception result */
+		protected final AtomicReference<Exception> ex = new AtomicReference<Exception>(null); 
 		
 		/**
+		 * Creates a new SynchronousResponse with no unmarshaller
+		 */
+		protected SynchronousResponse() {			
+			this.unmarshaller = null;			
+		}		
+		
+		
+		/**
+		 * Creates a new SynchronousResponse
+		 * @param unmarshaller The domain unmarshaller
+		 */
+		protected SynchronousResponse(DomainUnmarshaller<T> unmarshaller) {			
+			this.unmarshaller = unmarshaller;			
+		}
+		
+		
+		
+		public void handle(final HttpClientResponse event) {
+			log.debug("Calling handle(HttpClientResponse)");
+			int bufferSize;
+			String cs = event.headers().get(HttpHeaders.Names.CONTENT_LENGTH);
+			if(cs==null || cs.trim().isEmpty()) {
+				bufferSize = 1024;
+			} else {
+				try { bufferSize = Integer.parseInt(cs.trim()); } catch (Exception ex) { bufferSize = 1024; }
+			}
+			final Buffer content = new Buffer(bufferSize);
+			final Handler<Exception> exceptionHandler = new Handler<Exception>() {
+				@Override
+				public void handle(Exception exEvent) {
+					ex.set(exEvent);
+					latch.countDown();					
+				}
+			};
+			event.exceptionHandler(exceptionHandler);
+			event.dataHandler(new Handler<Buffer>(){
+				@Override
+				public void handle(Buffer dataEvent) {
+					log.debug("Calling dataHandler:{} Bytes", dataEvent.length()); 
+					content.appendBuffer(dataEvent);				
+				}
+			});
+			event.endHandler(new Handler<Void>(){
+				@SuppressWarnings("unchecked")
+				@Override
+				public void handle(Void endEvent) {
+					if(log.isDebugEnabled()) {
+						log.debug("Calling endHandler:{} Bytes", content.length());
+						log.info("Response:[{}]", render(event, content));
+					}
+					try {
+						if(unmarshaller!=null) {
+							result.set(unmarshaller.unmarshall(content));
+						} else {
+							result.set((T)content);
+						}
+						latch.countDown();
+					} catch (Exception ex) {
+						exceptionHandler.handle(ex);
+					}
+				}
+			});
+			
+		}
+		
+		
+		/**
+		 * <p>No Op</p>
 		 * {@inheritDoc}
 		 * @see java.util.concurrent.Future#cancel(boolean)
 		 */
@@ -91,12 +176,12 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 		}
 
 		/**
+		 * <p>Always returns false</p>
 		 * {@inheritDoc}
 		 * @see java.util.concurrent.Future#isCancelled()
 		 */
 		@Override
 		public boolean isCancelled() {
-			// TODO Auto-generated method stub
 			return false;
 		}
 
@@ -106,8 +191,19 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 		 */
 		@Override
 		public boolean isDone() {
-			// TODO Auto-generated method stub
-			return false;
+			return latch.getCount()<1;
+		}
+		
+		/**
+		 * Returns the [unmarshalled] http request response
+		 * @return the http request response
+		 */
+		public T getResponse() {
+			try {
+				return get();
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
 		}
 
 		/**
@@ -116,8 +212,12 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 		 */
 		@Override
 		public T get() throws InterruptedException, ExecutionException {
-			// TODO Auto-generated method stub
-			return null;
+			latch.await();
+			Exception exx = ex.get();
+			if(exx!=null) {
+				throw new RuntimeException("Request execution failed", exx);
+			}
+			return result.get();
 		}
 
 		/**
@@ -125,50 +225,44 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 		 * @see java.util.concurrent.Future#get(long, java.util.concurrent.TimeUnit)
 		 */
 		@Override
-		public T get(long timeout, TimeUnit unit) throws InterruptedException,
-				ExecutionException, TimeoutException {
-			// TODO Auto-generated method stub
-			return null;
+		public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+			boolean ok = latch.await(timeout, unit);
+			if(!ok) throw new TimeoutException("Request timed out");
+			Exception exx = ex.get();
+			if(exx!=null) {
+				throw new RuntimeException("Request execution failed", exx);
+			}
+			return result.get();
 		}
 		
 	}
+	
+	
+	/**
+	 * Creates a new SynchronousResponse
+	 * @param unmarshaller The domain unmarshaller
+	 * @param <T> The expected type of the response
+	 * @return The new SynchronousResponse
+	 */
+	protected <T> SynchronousResponse<T> newSynchronousResponse(DomainUnmarshaller<T> unmarshaller) {
+		return new SynchronousResponse<T>(unmarshaller);
+	}
+	
+	/**
+	 * Creates a new SynchronousResponse with no unmarshaller (meaning the type we're expecting is a {@link Buffer}.
+	 * @param <T> The expected type of the response
+	 * @return The new SynchronousResponse
+	 */
+	protected <T> SynchronousResponse<T> newSynchronousResponse() {
+		return newSynchronousResponse();
+	}
+	
 	
 //	protected Buffer waitForResponse(HttpClientRequest request) {
 //		
 //	}
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.vertx.java.core.Handler#handle(java.lang.Object)
-	 */
-	@Override
-	public void handle(final HttpClientResponse event) {
-		log.debug("Calling handle(HttpClientResponse)");
-		int bufferSize;
-		String cs = event.headers().get(HttpHeaders.Names.CONTENT_LENGTH);
-		if(cs==null || cs.trim().isEmpty()) {
-			bufferSize = 1024;
-		} else {
-			try { bufferSize = Integer.parseInt(cs.trim()); } catch (Exception ex) { bufferSize = 1024; }
-		}
-		final Buffer content = new Buffer(bufferSize);
-		event.dataHandler(new Handler<Buffer>(){
-			@Override
-			public void handle(Buffer dataEvent) {
-				log.debug("Calling dataHandler:{} Bytes", dataEvent.length()); 
-				content.appendBuffer(dataEvent);				
-			}
-		});
-		event.endHandler(new Handler<Void>(){
-			@Override
-			public void handle(Void endEvent) {
-				if(log.isDebugEnabled()) {
-					log.debug("Calling endHandler:{} Bytes", content.length());
-					log.info("Response:[{}]", render(event, content));
-				}
-			}
-		});
-	}
+
 	
 
 	/**
@@ -177,8 +271,11 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 	 */
 	@Override
 	public Dashboard getDashboard(CharSequence dashboardId) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling getDashboard()");
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
+		client.get(String.format(URI_GET_DASHBOARD, dashboardId, apiKey), responder).setTimeout(timeout).end();
+		return responder.getResponse();
+
 	}
 
 	/**
@@ -187,8 +284,16 @@ public class DashkuImpl extends AbstractDashku implements Dashku, Handler<HttpCl
 	 */
 	@Override
 	public String createDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling createDashboard()");
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
+		String diffPost = buildDirtyUpdatePostJSON(dashboard);
+		log.debug("Sending Dashboard Init Attrs:[{}]", diffPost);
+		HttpClientRequest req = client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder).setTimeout(timeout);
+		req.headers().put(HttpHeaders.Names.CONTENT_TYPE, diffPost.length());
+		req.write(diffPost).end();
+		Dashboard newd = responder.getResponse();
+		dashboard.updateFrom(newd);
+		return newd.getId();
 	}
 
 	/**

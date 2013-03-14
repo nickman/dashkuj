@@ -1,0 +1,24 @@
+{
+  "channels": ["user_513bd839e9fc007c07000002"],
+  "e": "widgetCreated",
+  "p": [{
+    "dashboardId": "513c327903d2b2f807000074",
+    "widget": {
+      "_id": "513c329e03d2b2f807000078",
+      "createdAt": "2013-03-10T07:13:34.994Z",
+      "css": "/* your widget's CSS goes here */\ncanvas {\n  margin-top: 10%;\n}",
+      "height": 180,
+      "html": "<span class=\"bar\">5,3,9,6,5,9,7,3,5,2<\/span>",
+      "json": "{\n  \"value\": 40,\n  \"_id\": \"513c329e03d2b2f807000078\",\n  \"apiKey\": \"31e3b92f-dcf3-468d-bd97-53327c6786a9\"\n}",
+      "name": "Peity Bar",
+      "scopedCSS": "/* your widget's CSS goes here */\n.widget[data-id='513c329e03d2b2f807000078'] canvas {\n  margin-top: 10%;\n}",
+      "script": "// The widget's html as a jQuery object\nvar widget = this.widget;\n\n// This runs when the widget is loaded\nthis.on('load', function(data){\n  head.js('/javascripts/peity.min.js');\n  head.ready(function(){\n    widget.find(\".bar\").peity('bar',{\n      width: widget.width()*0.8,\n      height: widget.height()*0.6,\n      colour: 'yellow'\n    });\n  });\n\n});\n// This runs when the widget receives a transmission\nthis.on('transmission', function(data){\n  var bar = widget.find('.bar')\n  var existingData = bar.text().split(',')\n  if (existingData.length > 12) {existingData.shift()};\n  existingData.push(data.value);\n  bar.text(existingData.join(',')).change()\n});",
+      "scriptType": "javascript",
+      "updatedAt": "2013-03-10T07:13:34.994Z",
+      "userId": "513bd839e9fc007c07000002",
+      "widgetTemplateId": "513bd8289fef8c9607000004",
+      "width": 200
+    }
+  }],
+  "t": "channel"
+}

@@ -1,0 +1,9 @@
+{
+  "channels": ["user_513bd839e9fc007c07000002"],
+  "e": "widgetDeleted",
+  "p": [{
+    "dashboardId": "513bd839e9fc007c07000003",
+    "widgetId": "513c29b4d37227a90700013c"
+  }],
+  "t": "channel"
+}

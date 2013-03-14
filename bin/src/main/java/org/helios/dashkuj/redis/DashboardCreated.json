@@ -1,0 +1,15 @@
+{
+  "channels": ["user_513bd839e9fc007c07000002"],
+  "e": "dashboardCreated",
+  "p": [{
+    "_id": "513c327903d2b2f807000074",
+    "createdAt": "2013-03-10T07:12:57.526Z",
+    "css": "/*\n\nYou can use custom CSS to style the dashboard as you like \n\nMake the changes that you like, then close the editor when you are happy.\n\nUncomment the block below to see the changes in real-time */\n\n/*\n\nbody {\n  background: #111;\n} \n\n*/",
+    "name": "JVM Analysis",
+    "screenWidth": "fixed",
+    "updatedAt": "2013-03-10T07:12:57.526Z",
+    "userId": "513bd839e9fc007c07000002",
+    "widgets": []
+  }],
+  "t": "channel"
+}

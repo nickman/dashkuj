@@ -24,14 +24,28 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.helios.dashkuj.json.GsonFactory;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.vertx.java.core.buffer.Buffer;
 
 import com.github.jmkgreen.morphia.annotations.Embedded;
 import com.github.jmkgreen.morphia.annotations.Entity;
 import com.github.jmkgreen.morphia.annotations.Id;
 import com.github.jmkgreen.morphia.annotations.Property;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 
@@ -63,6 +77,9 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 //	protected Map<String, Widget> widgets = new ConcurrentHashMap<String, Widget>();
 	@Embedded("widgets")
 	protected final List<Widget> widgets = new CopyOnWriteArrayList<Widget>();
+	
+	/** A map of widgets keyed by the widget id */
+	protected final Map<String, Widget> widgetsById = new ConcurrentHashMap<String, Widget>();
 
 	
 	/** The type of a Status */
@@ -79,6 +96,57 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	public static final TypeToken<Collection<Widget>> WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */};
 	/** The type of a widget */
 	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
+	
+	/** An unmarshaller for dashboard collections */
+	public static final DomainUnmarshaller<Collection<Dashboard>> DASHBOARD_COLLECTION_UNMARSHALLER = new DomainUnmarshaller<Collection<Dashboard>>() {
+		public Collection<Dashboard> unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Dashboard.DASHBOARD_COLLECTION_TYPE.getType());
+		}
+				
+	};
+	
+	/** An unmarshaller for dashboards */
+	public static final DomainUnmarshaller<Dashboard> DASHBOARD_UNMARSHALLER = new DomainUnmarshaller<Dashboard>() {
+		public Dashboard unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Dashboard.DASHBOARD_TYPE.getType());
+		}
+				
+	};
+	
+	
+	/**
+	 * <p>Title: DashboardTypeAdapter</p>
+	 * <p>Description: A custom deserializer for dashboards to handle some post-creation bits-n-pieces.</p> 
+	 * <p>Company: Helios Development Group LLC</p>
+	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
+	 * <p><code>org.helios.dashkuj.domain.Dashboard.DashboardTypeAdapter</code></p>
+	 */
+	public static class DashboardTypeAdapter implements JsonSerializer<Dashboard>, JsonDeserializer<Dashboard> {
+		/**
+		 * {@inheritDoc}
+		 * @see com.google.gson.JsonSerializer#serialize(java.lang.Object, java.lang.reflect.Type, com.google.gson.JsonSerializationContext)
+		 */
+		@Override
+		public JsonElement serialize(Dashboard src, Type typeOfSrc, JsonSerializationContext context) {
+			return context.serialize(src, Dashboard.class);
+		}
+		/**
+		 * {@inheritDoc}
+		 * @see com.google.gson.JsonDeserializer#deserialize(com.google.gson.JsonElement, java.lang.reflect.Type, com.google.gson.JsonDeserializationContext)
+		 */
+		@Override
+		public Dashboard deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			Dashboard d = GsonFactory.getInstance().newNoSerGson().fromJson(json, Dashboard.class);
+			for(Widget w: d.widgets) {
+				d.widgetsById.put(w.getId(), w);
+			}
+			return d;
+		}
+	}
+	
+	
 
 	/**
 	 * Creates a new Dashboard
@@ -108,6 +176,7 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	    this.id = dashboard.id;
 	    this.screenWidth = dashboard.screenWidth;
 	    this.userId = dashboard.userId;
+	    clearDirtyFields();
 	    return this;
 	}
 
@@ -149,10 +218,10 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 		builder.append(css==null ? "<empty>" : ("" + css.length() + " chars"));
 		builder.append("\n\tname=");
 		builder.append(name);
-		if(!widgets.isEmpty()) {
+		if(!widgetsById.isEmpty()) {
 			builder.append("\n\twidgets=");
-			for(Widget widget: widgets) {
-				builder.append("\n\t\t").append(widget.getName()).append(":").append("/").append(widget.getId());				
+			for(Map.Entry<String, Widget> entry: widgetsById.entrySet()) {
+				builder.append("\n\t\t").append(entry.getKey()).append(":").append(entry.getValue().getName());				
 			}
 		}		
 		builder.append("\n]");
@@ -175,6 +244,9 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 		dirty(this.screenWidth, screenWidth, "screenWidth");
 		this.screenWidth = screenWidth.name();
 	}
+
+	
+	
 	
 	
 	
