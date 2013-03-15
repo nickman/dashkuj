@@ -108,13 +108,21 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	
 	/** An unmarshaller for dashboards */
 	public static final DomainUnmarshaller<Dashboard> DASHBOARD_UNMARSHALLER = new DomainUnmarshaller<Dashboard>() {
+		@Override
 		public Dashboard unmarshall(Buffer buffer) {
 			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
 			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Dashboard.DASHBOARD_TYPE.getType());
 		}
-				
 	};
 	
+	/** An unmarshaller for dashboard Ids */
+	public static final DomainUnmarshaller<DashboardId> DASHBOARD_ID_UNMARSHALLER = new DomainUnmarshaller<DashboardId>() {
+		@Override
+		public DashboardId unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Dashboard.DASHBOARD_ID_TYPE.getType());
+		}
+	};
 	
 	/**
 	 * <p>Title: DashboardTypeAdapter</p>

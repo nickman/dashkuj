@@ -24,6 +24,7 @@
  */
 package org.helios.dashkuj.core.apiimpl;
 
+import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -34,9 +35,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.DashboardId;
 import org.helios.dashkuj.domain.DomainUnmarshaller;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
+import org.helios.dashkuj.json.GsonFactory;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
@@ -254,7 +258,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 * @return The new SynchronousResponse
 	 */
 	protected <T> SynchronousResponse<T> newSynchronousResponse() {
-		return newSynchronousResponse();
+		return new SynchronousResponse<T>();
 	}
 	
 	
@@ -286,11 +290,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	public String createDashboard(Dashboard dashboard) {
 		log.debug("Calling createDashboard()");
 		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
-		String diffPost = buildDirtyUpdatePostJSON(dashboard);
-		log.debug("Sending Dashboard Init Attrs:[{}]", diffPost);
-		HttpClientRequest req = client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder).setTimeout(timeout);
-		req.headers().put(HttpHeaders.Names.CONTENT_TYPE, diffPost.length());
-		req.write(diffPost).end();
+		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder));			
 		Dashboard newd = responder.getResponse();
 		dashboard.updateFrom(newd);
 		return newd.getId();
@@ -302,8 +302,11 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public void updateDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-
+		log.debug("Calling updateDashboard()");
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
+		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey), responder));			
+		Dashboard newd = responder.getResponse();
+		dashboard.updateFrom(newd);
 	}
 
 	/**
@@ -312,8 +315,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public String deleteDashboard(Dashboard dashboard) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling deleteDashboard()");
+		SynchronousResponse<DashboardId> responder = newSynchronousResponse(Dashboard.DASHBOARD_ID_UNMARSHALLER);
+		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.delete(String.format(URI_DELETE_DELETE_DASHBOARD, dashboard.getId(), apiKey), responder));			
+		return responder.getResponse().getDashboardId();
 	}
 
 	/**

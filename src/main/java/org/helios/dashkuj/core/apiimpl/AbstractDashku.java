@@ -24,16 +24,19 @@
  */
 package org.helios.dashkuj.core.apiimpl;
 
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.Set;
 
 import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
 import org.helios.dashkuj.json.GsonFactory;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
+import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 
 import com.google.gson.JsonObject;
@@ -67,6 +70,9 @@ public class AbstractDashku {
 	/** A UTF-8 charset for URL encoding */
 	public static final Charset UTF8CS = Charset.forName("UTF-8");
 	
+	/** A convenience generic exception handler */
+	protected final Handler<Exception> genericExceptionHandler;
+	
 
 	/**
 	 * Creates a new AbstractDashku
@@ -83,8 +89,54 @@ public class AbstractDashku {
 		this.port = port;
 		this.client = client.setHost(host).setPort(port).setConnectTimeout(timeout).setKeepAlive(true);
 		log = LoggerFactory.getLogger(String.format("%s.%s:%s", getClass().getName(), this.host, this.port));
-		
+		genericExceptionHandler = new Handler<Exception>() {
+			@Override
+			public void handle(Exception exEvent) {
+				String msg = "Generic exception handler caught exception event [" + exEvent.getMessage() + "]";
+				log.error(msg);
+				throw new RuntimeException(msg, exEvent);
+			}
+		};
 	}
+	
+	/**
+	 * Completes the passed client http request
+	 * @param request the request to complete
+	 * @return the completed request
+	 */
+	protected HttpClientRequest completeRequest(HttpClientRequest request) {
+		request.exceptionHandler(genericExceptionHandler);
+		request.end();
+		return request;
+	}
+	
+	/**
+	 * Completes the passed client http request
+	 * @param body The body of the request to write
+	 * @param contentType The content type of the body
+	 * @param request the request to complete
+	 * @return the completed request
+	 */
+	protected HttpClientRequest completeRequest(Buffer body, String contentType, HttpClientRequest request) {
+		request.exceptionHandler(genericExceptionHandler);
+		request.setTimeout(timeout);
+		request.putHeader(HttpHeaders.Names.CONTENT_LENGTH, body.length());
+		request.putHeader(HttpHeaders.Names.CONTENT_TYPE, contentType);
+		request.write(body);
+		request.end();
+		return request;
+	}
+	
+	/**
+	 * Completes the passed client http request, with the default content type of <b><code>application/json</code></b>
+	 * @param body The body of the request to write
+	 * @param request the request to complete
+	 * @return the completed request
+	 */
+	protected HttpClientRequest completeRequest(Buffer body, HttpClientRequest request) {
+		return completeRequest(body, "application/json", request);
+	}
+	
 	
 	/**
 	 * Returns the dashku server host name or ip address
@@ -169,13 +221,13 @@ public class AbstractDashku {
 	 * @param domainObject the domain object to generate the diff post for
 	 * @return the diff post body
 	 */
-	protected String buildDirtyUpdatePostJSON(AbstractDashkuDomainObject domainObject) {
+	protected Buffer buildDirtyUpdatePostJSON(AbstractDashkuDomainObject domainObject) {
 		JsonObject jsonDomainObject = GsonFactory.getInstance().newNoSerGson().toJsonTree(domainObject).getAsJsonObject();
 		JsonObject diffs = new JsonObject();
 		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
 			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
 		}
-		return diffs.toString();
+		return new Buffer(diffs.toString(), "UTF-8");
 	}
 	
 	/**
@@ -184,18 +236,20 @@ public class AbstractDashku {
 	 * @param domainObject the domain object to generate the diff post for
 	 * @return the diff post body
 	 */
-	protected String buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
+	protected Buffer buildDirtyUpdatePost(AbstractDashkuDomainObject domainObject) {
 		StringBuilder b = new StringBuilder();
-		JsonObject jsonDomainObject = GsonFactory.getInstance().newGson().toJsonTree(domainObject).getAsJsonObject();		
+		JsonObject jsonDomainObject = GsonFactory.getInstance().newNoSerGson().toJsonTree(domainObject).getAsJsonObject();
+		Set<String> fieldnames = domainObject.getDirtyFieldNames();
+		if(fieldnames.isEmpty()) return null;
 		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
 			try {
-				String value = URLEncoder.encode(jsonDomainObject.get(dirtyFieldName).toString(), UTF8CS.name());
+				String value = jsonDomainObject.get(dirtyFieldName).toString();
 				b.append(dirtyFieldName).append("=").append(value).append("&");
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to encode dirty field [" + dirtyFieldName + "]", ex);
 			}
-		}
-		return b.deleteCharAt(b.length()-1).toString();
+		}		
+		return new Buffer(b.deleteCharAt(b.length()-1).toString(), "UTF-8");
 	}
 	
 	
