@@ -24,13 +24,19 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.io.InputStreamReader;
+
+import org.helios.dashkuj.api.DashkuAPIException;
+import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferIndexFinder;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.vertx.java.core.buffer.Buffer;
 
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * <p>Title: Status</p>
@@ -64,6 +70,11 @@ public class Status {
 	/** The length of leading pattern */
 	public static final int LEADER_STATUS_SIZE = "{'status':".getBytes().length;
 	
+	/** The type of a Status */
+	public static final TypeToken<Status> STATUS_TYPE = new TypeToken<Status>(){/* No Op */};
+	
+	/** The value of the status attribute in a successful status response */
+	public static final String SUCCESS_STATUS = "success";
 	
 	/** A ChannelBufferIndexFinder for sniffing channel buffers for the status json signature */
 	public static final ChannelBufferIndexFinder STATUS_PATTERN_FINDER = new ChannelBufferIndexFinder() {
@@ -78,6 +89,16 @@ public class Status {
 			return slice.equals(STATUS_PATTERN_DQ) || slice.equals(STATUS_PATTERN_SQ);			
 		}
 	};
+	
+	/** An unmarshaller for Statuses */
+	public static final DomainUnmarshaller<Status> STATUS_UNMARSHALLER = new DomainUnmarshaller<Status>() {
+		@Override
+		public Status unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Status.STATUS_TYPE.getType());
+		}
+	};
+	
 	
 	/**
 	 * Determines if the passed buffer contains a signature suggesting it is the JSON for a Status entity
@@ -100,11 +121,20 @@ public class Status {
 	}
 	
 	/**
+	 * Indicates if this status reflects a successful call
+	 * @return true if this status reflects a successful call, false otherwise
+	 */
+	public boolean isSuccess() {
+		return SUCCESS_STATUS.equals(message);
+	}
+	
+	/**
 	 * Returns the dashboard id, or null if one was not set
 	 * @return the dashboardId
 	 */
 	public String getDashboardId() {
-		return dashboardId;
+		if(isSuccess()) return dashboardId;
+		throw getException();
 	}
 	
 	/**
@@ -112,7 +142,8 @@ public class Status {
 	 * @return the widgetId
 	 */
 	public String getWidgetId() {
-		return widgetId;
+		if(isSuccess()) return widgetId;
+		throw getException();
 	}
 	
 
@@ -179,6 +210,14 @@ public class Status {
 		
 		String status = b.toString().trim();		
 		return status + "]";
+	}
+	
+	/**
+	 * Generates an exception from this status
+	 * @return an exception
+	 */
+	public RuntimeException getException() {
+		return new DashkuAPIException("Unexpected Response " + toString(), new Throwable());
 	}
 	
 	

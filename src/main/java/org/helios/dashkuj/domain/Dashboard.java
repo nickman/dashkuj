@@ -86,16 +86,10 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	public static final TypeToken<Status> STATUS_TYPE = new TypeToken<Status>(){/* No Op */};	
 	/** The type of a DashboardId */
 	public static final TypeToken<DashboardId> DASHBOARD_ID_TYPE = new TypeToken<DashboardId>(){/* No Op */};	
-	/** The type of a WidgetId */
-	public static final TypeToken<WidgetId> WIDGET_ID_TYPE = new TypeToken<WidgetId>(){/* No Op */};	
 	/** The type of a dashboard */
 	public static final TypeToken<Dashboard> DASHBOARD_TYPE = new TypeToken<Dashboard>(){/* No Op */};	
 	/** The type of a collection of dashboards */
 	public static final TypeToken<Collection<Dashboard>> DASHBOARD_COLLECTION_TYPE = new TypeToken<Collection<Dashboard>>(){/* No Op */};
-	/** The type of a collection of widgets */
-	public static final TypeToken<Collection<Widget>> WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */};
-	/** The type of a widget */
-	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
 	
 	/** An unmarshaller for dashboard collections */
 	public static final DomainUnmarshaller<Collection<Dashboard>> DASHBOARD_COLLECTION_UNMARSHALLER = new DomainUnmarshaller<Collection<Dashboard>>() {

@@ -203,13 +203,13 @@ public class DashkuDecoder extends SimpleChannelUpstreamHandler {
 	/** Type token for a dashboard. One of the standard sniffed type tokens */
 	public static final TypeToken<Dashboard> TT_DASHBOARD = Dashboard.DASHBOARD_TYPE;
 	/** Type token for a widget. One of the standard sniffed type tokens */
-	public static final TypeToken<Widget> TT_WIDGET = Dashboard.WIDGET_TYPE;
+	public static final TypeToken<Widget> TT_WIDGET = Widget.WIDGET_TYPE;
 	/** Type token for a status. One of the standard sniffed type tokens */
 	public static final TypeToken<Status> TT_STATUS = Dashboard.STATUS_TYPE;
 	/** Type token for a dashboard id. One of the standard sniffed type tokens */
 	public static final TypeToken<DashboardId> TT_DASHBOARD_ID = Dashboard.DASHBOARD_ID_TYPE;	
 	/** Type token for a widget id. One of the standard sniffed type tokens */
-	public static final TypeToken<WidgetId> TT_WIDGET_ID = Dashboard.WIDGET_ID_TYPE;	
+	public static final TypeToken<WidgetId> TT_WIDGET_ID = Widget.WIDGET_ID_TYPE;	
 	
 	
 	/**

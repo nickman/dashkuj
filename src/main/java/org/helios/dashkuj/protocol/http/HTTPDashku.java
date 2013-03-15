@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.api.DashkuAPIException;
 import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.Resource;
 import org.helios.dashkuj.domain.Status;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
@@ -100,21 +101,9 @@ public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 		return (Dashboard) apiCall(Dashboard.DASHBOARD_TYPE, channel, HttpMethod.GET, "getDashboard", null, URI_GET_DASHBOARD, dashboardId, apiKey);
 	}	
 	
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getResourceString(java.lang.CharSequence)
-	 */
 	@Override
-	public String getResourceString(CharSequence resourceUri) {
-		if(resourceUri==null) return null;
-		HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, resourceUri.toString());
-		channel.write(request);
-		try {
-			HttpResponse response = (HttpResponse)synchReader.read(timeout, TimeUnit.MILLISECONDS);
-			return response.getContent().toString(UTF8CS);
-		} catch (Exception ex) {
-			throw new DashkuAPIException("Failed to retrieve resource [" + resourceUri + "]", ex);
-		}	
+	public Resource getResource(CharSequence resourceUri) {
+		return null;
 	}
 
 	
@@ -171,8 +160,8 @@ public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 	public String createWidget(CharSequence dashboardId, Widget widget) {
 		String diffPost = buildDirtyUpdatePost(widget);
 		log.debug("Sending Widget Init Attrs:[{}]", diffPost);		
-		Widget newWidget = (Widget) apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.POST, "createWidget", diffPost, URI_POST_CREATE_WIDGET, dashboardId, apiKey);
-		widget.updateFrom(newWidget);
+		Widget newWidget = (Widget) apiCall(Widget.WIDGET_TYPE, channel, HttpMethod.POST, "createWidget", diffPost, URI_POST_CREATE_WIDGET, dashboardId, apiKey);
+		widget.updateFrom(newWidget, dashboardId.toString());
 		return newWidget.getId();
 	}
 	
@@ -186,7 +175,7 @@ public class HTTPDashku extends AbstractHTTPDashku implements Dashku {
 		if(!widget.isDirty()) return widget;
 		String diffPost = buildDirtyUpdatePostJSON(widget);
 		log.debug("Sending Widget Diffs:[{}]", diffPost);
-		apiCall(Dashboard.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
+		apiCall(Widget.WIDGET_TYPE, channel, HttpMethod.PUT, "updateWidget", diffPost, URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey);
 		log.debug("Widget updated:[{}/{}]", widget.getName(), widget.getId());
 		widget.clearDirtyFields();
 		return widget;

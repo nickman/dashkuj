@@ -24,9 +24,17 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.io.InputStreamReader;
+import java.util.Collection;
+
+import org.helios.dashkuj.json.GsonFactory;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.vertx.java.core.buffer.Buffer;
+
 import com.github.jmkgreen.morphia.annotations.Entity;
 import com.github.jmkgreen.morphia.annotations.Property;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * <p>Title: Widget</p>
@@ -41,7 +49,10 @@ public class Widget extends AbstractDashkuDomainObject {
 	@Property("_id")
 	@SerializedName("_id")
 	protected String id = null;
-
+	@Property("dashboardId")
+	@SerializedName("dashboardId")
+	/** The id of the dashboard this widget lives in */
+	protected String dashboardId = null;
 	/** The widget's height */
 	@Property("height")
 	@SerializedName("height")
@@ -73,8 +84,36 @@ public class Widget extends AbstractDashkuDomainObject {
 	/** The dashku server provided script to transmit to this widget */
 	protected String serverScript = null;
 	
+	/** The type of a collection of widgets */
+	public static final TypeToken<Collection<Widget>> WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */};
+	/** The type of a widget */
+	public static final TypeToken<Widget> WIDGET_TYPE = new TypeToken<Widget>(){/* No Op */};
+	/** The type of a WidgetId */
+	public static final TypeToken<WidgetId> WIDGET_ID_TYPE = new TypeToken<WidgetId>(){/* No Op */};	
+	
+	/** The URI template to retrieve a widget's invocation script (dashboardId, widgetId, widgetId, extension) */
+	public static final String SCRIPT_URI_TEMPLATE = "/api/dashboards/%s/widgets/%s/downloads/dashku_%s.%s";
+	
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.js
 	// http://dashku:3000/api/dashboards/513b2821a03ed86f05000011/widgets/513b2827a03ed86f05000021/downloads/dashku_513b2827a03ed86f05000021.coffee
+	
+	/** An unmarshaller for widgets */
+	public static final DomainUnmarshaller<Widget> WIDGET_UNMARSHALLER = new DomainUnmarshaller<Widget>() {
+		@Override
+		public Widget unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Widget.WIDGET_TYPE.getType());
+		}
+	};
+	
+	/** An unmarshaller for widget ids */
+	public static final DomainUnmarshaller<WidgetId> WIDGET_ID_UNMARSHALLER = new DomainUnmarshaller<WidgetId>() {
+		@Override
+		public WidgetId unmarshall(Buffer buffer) {
+			InputStreamReader jsonReader = new InputStreamReader(new ChannelBufferInputStream(buffer.getChannelBuffer(), buffer.length()));
+			return GsonFactory.getInstance().newGson().fromJson(jsonReader, Widget.WIDGET_ID_TYPE.getType());
+		}
+	};
 	
 	
 	/**
@@ -103,9 +142,10 @@ public class Widget extends AbstractDashkuDomainObject {
 	/**
 	 * Updates this widget from another transient widget
 	 * @param widget the widget to update from
+	 * @param dashboardId The id of the dashboard this widget lives in
 	 * @return this widget
 	 */
-	public Widget updateFrom(Widget widget) {
+	public Widget updateFrom(Widget widget, String dashboardId) {
 		super.updateFrom(widget);
 	    this.id = widget.id;
 	    this.height = widget.height;
@@ -115,6 +155,8 @@ public class Widget extends AbstractDashkuDomainObject {
 	    this.script = widget.script;
 	    this.scopedCss = widget.scopedCss;
 	    this.html = widget.html;
+	    this.dashboardId = dashboardId;
+	    clearDirtyFields();
 	    return this;
 	}
 
@@ -125,6 +167,15 @@ public class Widget extends AbstractDashkuDomainObject {
 	@Override
 	public String getId() {
 		return id;
+	}
+	
+	/**
+	 * Returns the URI of this widget's transmission script for the passed transmission script type
+	 * @param scriptType the transmission script type
+	 * @return the script URI
+	 */
+	public String getScriptURI(TransmissionScriptType scriptType) {
+		return String.format(SCRIPT_URI_TEMPLATE, dashboardId, id, id, scriptType.getExtension());
 	}
 	
 	/**
@@ -158,6 +209,8 @@ public class Widget extends AbstractDashkuDomainObject {
 		builder.append(css);
 		builder.append("\n\tname:");
 		builder.append(name);
+		builder.append("\n\tdashboardId:");
+		builder.append(dashboardId);		
 		builder.append("\n]");
 		return builder.toString();
 	}
@@ -307,6 +360,22 @@ public class Widget extends AbstractDashkuDomainObject {
 	public void setHtml(String html) {
 		dirty(this.html, html, "html");
 		this.html = html;
+	}
+
+	/**
+	 * Returns the id of the dashboard this widget lives in
+	 * @return the id of the dashboard this widget lives in
+	 */
+	public String getDashboardId() {
+		return dashboardId;
+	}
+
+	/**
+	 * Sets the id of the dashboard this widget lives in
+	 * @param dashboardId the id of the dashboard this widget lives in
+	 */
+	public void setDashboardId(String dashboardId) {
+		this.dashboardId = dashboardId;
 	}
 	
 	

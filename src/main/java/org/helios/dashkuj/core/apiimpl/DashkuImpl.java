@@ -24,7 +24,7 @@
  */
 package org.helios.dashkuj.core.apiimpl;
 
-import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -35,17 +35,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.domain.Dashboard;
-import org.helios.dashkuj.domain.DashboardId;
 import org.helios.dashkuj.domain.DomainUnmarshaller;
+import org.helios.dashkuj.domain.Resource;
+import org.helios.dashkuj.domain.Status;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
-import org.helios.dashkuj.json.GsonFactory;
-import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
-import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 
 /**
@@ -76,7 +74,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	@Override
 	public Collection<Dashboard> getDashboards() {
 		log.debug("Calling getDashboards()");
-		SynchronousResponse<Collection<Dashboard>> responder = newSynchronousResponse(Dashboard.DASHBOARD_COLLECTION_UNMARSHALLER);
+		SynchronousResponse<Collection<Dashboard>> responder = newSynchronousResponse(Dashboard.DASHBOARD_COLLECTION_TYPE.getType(), Dashboard.DASHBOARD_COLLECTION_UNMARSHALLER);
 		client.get(String.format(URI_GET_DASHBOARDS, apiKey), responder).setTimeout(timeout).end();
 		return responder.getResponse();
 	}
@@ -100,21 +98,30 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		protected final AtomicReference<T> result = new AtomicReference<T>(null); 
 		/** The exception result */
 		protected final AtomicReference<Exception> ex = new AtomicReference<Exception>(null); 
+		/** The actual type we expect the response to be */
+		protected final Type responseType;
+		
+		/** The content type */
+		protected String contentType = null;
 		
 		/**
 		 * Creates a new SynchronousResponse with no unmarshaller
+		 * @param responseType The actual type we expect the response to be
 		 */
-		protected SynchronousResponse() {			
+		protected SynchronousResponse(Type responseType) {			
+			this.responseType = responseType;
 			this.unmarshaller = null;			
 		}		
 		
 		
 		/**
 		 * Creates a new SynchronousResponse
+		 * @param responseType The actual type we expect the response to be
 		 * @param unmarshaller The domain unmarshaller
 		 */
-		protected SynchronousResponse(DomainUnmarshaller<T> unmarshaller) {			
-			this.unmarshaller = unmarshaller;			
+		protected SynchronousResponse(Type responseType, DomainUnmarshaller<T> unmarshaller) {
+			this.responseType = responseType;
+			this.unmarshaller = unmarshaller;					
 		}
 		
 		
@@ -123,6 +130,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 			log.debug("Calling handle(HttpClientResponse)");
 			int bufferSize;
 			String cs = event.headers().get(HttpHeaders.Names.CONTENT_LENGTH);
+			contentType = event.headers().get(HttpHeaders.Names.CONTENT_TYPE);
 			if(cs==null || cs.trim().isEmpty()) {
 				bufferSize = 1024;
 			} else {
@@ -153,10 +161,25 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 						log.info("Response:[{}]", render(event, content));
 					}
 					try {
+						if(Status.containsStatus(content)) {
+							log.info("Detected Status Pattern in Response Buffer [{}]", render(event, content));
+							Status status = Status.STATUS_UNMARSHALLER.unmarshall(content);
+							if(responseType.equals(Status.class)) {
+								result.set((T) status);
+							} else {
+								exceptionHandler.handle(status.getException());
+							}
+							latch.countDown();
+							return;
+						}
 						if(unmarshaller!=null) {
 							result.set(unmarshaller.unmarshall(content));
 						} else {
-							result.set((T)content);
+							if(Resource.class.equals(responseType)) {
+								result.set((T)new Resource(content.getBytes(), contentType));
+							} else {
+								result.set((T)content);
+							}
 						}
 						latch.countDown();
 					} catch (Exception ex) {
@@ -244,21 +267,23 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	
 	/**
 	 * Creates a new SynchronousResponse
+	 * @param responseType The actual type we expect the response to be
 	 * @param unmarshaller The domain unmarshaller
 	 * @param <T> The expected type of the response
 	 * @return The new SynchronousResponse
 	 */
-	protected <T> SynchronousResponse<T> newSynchronousResponse(DomainUnmarshaller<T> unmarshaller) {
-		return new SynchronousResponse<T>(unmarshaller);
+	protected <T> SynchronousResponse<T> newSynchronousResponse(Type responseType, DomainUnmarshaller<T> unmarshaller) {
+		return new SynchronousResponse<T>(responseType, unmarshaller);
 	}
 	
 	/**
 	 * Creates a new SynchronousResponse with no unmarshaller (meaning the type we're expecting is a {@link Buffer}.
+	 * @param responseType The actual type we expect the response to be
 	 * @param <T> The expected type of the response
 	 * @return The new SynchronousResponse
 	 */
-	protected <T> SynchronousResponse<T> newSynchronousResponse() {
-		return new SynchronousResponse<T>();
+	protected <T> SynchronousResponse<T> newSynchronousResponse(Type responseType) {
+		return new SynchronousResponse<T>(responseType);
 	}
 	
 	
@@ -276,7 +301,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	@Override
 	public Dashboard getDashboard(CharSequence dashboardId) {
 		log.debug("Calling getDashboard()");
-		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
 		client.get(String.format(URI_GET_DASHBOARD, dashboardId, apiKey), responder).setTimeout(timeout).end();
 		return responder.getResponse();
 
@@ -289,11 +314,9 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	@Override
 	public String createDashboard(Dashboard dashboard) {
 		log.debug("Calling createDashboard()");
-		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
-		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder));			
-		Dashboard newd = responder.getResponse();
-		dashboard.updateFrom(newd);
-		return newd.getId();
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
+		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder));					
+		return dashboard.updateFrom(responder.getResponse()).getId();
 	}
 
 	/**
@@ -303,10 +326,13 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	@Override
 	public void updateDashboard(Dashboard dashboard) {
 		log.debug("Calling updateDashboard()");
-		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_UNMARSHALLER);
-		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey), responder));			
-		Dashboard newd = responder.getResponse();
-		dashboard.updateFrom(newd);
+		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
+		completeRequest(
+				buildDirtyUpdatePostJSON(dashboard), 
+				client.put(String.format(URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey), responder)
+					.putHeader(HttpHeaders.Names.ACCEPT, "application/json")
+		);					
+		dashboard.updateFrom(responder.getResponse());
 	}
 
 	/**
@@ -315,10 +341,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public String deleteDashboard(Dashboard dashboard) {
-		log.debug("Calling deleteDashboard()");
-		SynchronousResponse<DashboardId> responder = newSynchronousResponse(Dashboard.DASHBOARD_ID_UNMARSHALLER);
-		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.delete(String.format(URI_DELETE_DELETE_DASHBOARD, dashboard.getId(), apiKey), responder));			
-		return responder.getResponse().getDashboardId();
+		return deleteDashboard(dashboard.getId());
 	}
 
 	/**
@@ -327,8 +350,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public String deleteDashboard(CharSequence dashboardId) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling deleteDashboard()");
+		SynchronousResponse<Status> responder = newSynchronousResponse(Status.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
+		completeRequest(client.delete(String.format(URI_DELETE_DELETE_DASHBOARD, dashboardId, apiKey), responder));			
+		return responder.getResponse().getDashboardId();
 	}
 
 	/**
@@ -337,8 +362,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public String createWidget(CharSequence dashboardId, Widget widget) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling createWidget()");
+		SynchronousResponse<Widget> responder = newSynchronousResponse(Widget.WIDGET_ID_TYPE.getType(), Widget.WIDGET_UNMARSHALLER);
+		completeRequest(buildDirtyUpdatePostJSON(widget), "application/json",  client.post(String.format(URI_POST_CREATE_WIDGET, dashboardId, apiKey), responder));
+		return widget.updateFrom(responder.getResponse(), dashboardId.toString()).getId();
 	}
 
 	/**
@@ -347,8 +374,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling updateWidget()");
+		SynchronousResponse<Widget> responder = newSynchronousResponse(Widget.WIDGET_ID_TYPE.getType(), Widget.WIDGET_UNMARSHALLER);
+		completeRequest(buildDirtyUpdatePostJSON(widget), "application/json",  client.put(String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey), responder));
+		return widget.updateFrom(responder.getResponse(), dashboardId.toString());
 	}
 
 	/**
@@ -357,8 +386,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 */
 	@Override
 	public String deleteWidget(CharSequence dashboardId, CharSequence widgetId) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Calling deleteWidget({}, {})", dashboardId, widgetId);
+		SynchronousResponse<Status> responder = newSynchronousResponse(Status.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
+		completeRequest(client.delete(String.format(URI_DELETE_DELETE_WIDGET, dashboardId, widgetId, apiKey), responder));
+		return responder.getResponse().getWidgetId();
 	}
 
 	/**
@@ -373,12 +404,14 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getResourceString(java.lang.CharSequence)
+	 * @see org.helios.dashkuj.api.Dashku#getResource(java.lang.CharSequence)
 	 */
 	@Override
-	public String getResourceString(CharSequence resourceUri) {
-		// TODO Auto-generated method stub
-		return null;
+	public Resource getResource(CharSequence resourceUri) {
+		log.debug("Calling getResourceString({})", resourceUri);
+		SynchronousResponse<Resource> responder = newSynchronousResponse(Resource.RESOURCE_TYPE.getType());
+		completeRequest(client.get(resourceUri.toString(), responder));
+		return responder.getResponse();		
 	}
 
 	/**

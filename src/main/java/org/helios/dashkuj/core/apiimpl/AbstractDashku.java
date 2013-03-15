@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.core.apiimpl;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +42,7 @@ import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 /**
  * <p>Title: AbstractDashku</p>
@@ -243,13 +246,30 @@ public class AbstractDashku {
 		if(fieldnames.isEmpty()) return null;
 		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
 			try {
-				String value = jsonDomainObject.get(dirtyFieldName).toString();
-				b.append(dirtyFieldName).append("=").append(value).append("&");
+				JsonPrimitive jp = jsonDomainObject.getAsJsonPrimitive(dirtyFieldName);
+				String value = null;
+				if(jp.isString()) {
+					value = URLEncoder.encode(jp.getAsString(), "UTF-8");
+				} else if(jp.isNumber()) {
+					value = "" + jp.getAsNumber();
+				} else if(jp.isBoolean()) {
+					value = "" + jp.getAsBoolean();
+				} else {
+					value = jp.toString();
+				}				
+				b.append(dirtyFieldName).append("=").append(value).append("&");				
 			} catch (Exception ex) {
 				throw new RuntimeException("Failed to encode dirty field [" + dirtyFieldName + "]", ex);
 			}
 		}		
-		return new Buffer(b.deleteCharAt(b.length()-1).toString(), "UTF-8");
+		b.deleteCharAt(b.length()-1);
+		try {
+			String encoded = b.toString(); //URLEncoder.encode(b.toString(), "UTF-8");
+			log.info("Update Post:[\n\t{}\n]", encoded);			
+			return new Buffer(encoded);
+		} catch (Exception e) {
+			throw new RuntimeException(e);  // ain't happening
+		}
 	}
 	
 	

@@ -27,6 +27,7 @@ package org.helios.dashkuj.api;
 import java.util.Collection;
 
 import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.Resource;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
 
@@ -141,11 +142,11 @@ public interface Dashku {
 	public void transmit(Transmission...transmissions);
 	
 	/**
-	 * Acquires the named resource from the server as a string
+	 * Acquires the named resource from the server
 	 * @param resourceUri The URI of the resource
-	 * @return the resource of a string
+	 * @return the resource
 	 */
-	public String getResourceString(CharSequence resourceUri);
+	public Resource getResource(CharSequence resourceUri);
 	
 	/**
 	 * Returns the dashku host or ip address 
