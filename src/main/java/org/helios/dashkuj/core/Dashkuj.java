@@ -29,19 +29,25 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.core.apiimpl.DashkuImpl;
+import org.helios.dashkuj.domain.Status;
+import org.helios.dashkuj.util.URLHelper;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.tools.shell.Global;
 import org.mozilla.javascript.tools.shell.Main;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.deploy.impl.VertxLocator;
 import org.vertx.java.deploy.impl.rhino.RhinoContextFactory;
 import org.vertx.java.deploy.impl.rhino.RhinoVerticle;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * <p>Title: Dashkuj</p>
@@ -157,17 +163,17 @@ public class Dashkuj {
 //		} catch (Exception ex) {
 //			ex.printStackTrace(System.err);
 //		}
-		RhinoContextFactory rcf = new RhinoContextFactory();
-		ContextFactory.initGlobal(rcf);
-		Global global = Main.getGlobal();
-		Class<?> rvc = RhinoVerticle.class;
+//		RhinoContextFactory rcf = new RhinoContextFactory();
+//		ContextFactory.initGlobal(rcf);
+//		Global global = Main.getGlobal();
+//		Class<?> rvc = RhinoVerticle.class;
 		try {
 			//Require installRequire(final ClassLoader cl, Context cx, ScriptableObject scope) {
 			// private static void loadScript(ClassLoader cl, Context cx, ScriptableObject scope, String scriptName) th
-			Method m = rvc.getDeclaredMethod("installRequire", ClassLoader.class, Context.class, ScriptableObject.class);
-			Method loadMethod = rvc.getDeclaredMethod("loadScript", ClassLoader.class, Context.class, ScriptableObject.class, String.class);
-			Field scopeThreadLocal = rvc.getDeclaredField("scopeThreadLocal");  scopeThreadLocal.setAccessible(true);
-			Field clThreadLocal = rvc.getDeclaredField("clThreadLocal");  clThreadLocal.setAccessible(true);
+//			Method m = rvc.getDeclaredMethod("installRequire", ClassLoader.class, Context.class, ScriptableObject.class);
+//			Method loadMethod = rvc.getDeclaredMethod("loadScript", ClassLoader.class, Context.class, ScriptableObject.class, String.class);
+//			Field scopeThreadLocal = rvc.getDeclaredField("scopeThreadLocal");  scopeThreadLocal.setAccessible(true);
+//			Field clThreadLocal = rvc.getDeclaredField("clThreadLocal");  clThreadLocal.setAccessible(true);
 //			  private static ThreadLocal<ScriptableObject> scopeThreadLocal = new ThreadLocal<>();
 //			  private static ThreadLocal<ClassLoader> clThreadLocal = new ThreadLocal<>();
 
@@ -183,56 +189,76 @@ public class Dashkuj {
 //			InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream("vertx.js");
 			cx = Context.enter();			
 			scope = cx.initStandardObjects();
-//			((ThreadLocal<ScriptableObject>)scopeThreadLocal.get(null)).set(scope);
-//			Require require = (Require) m.invoke(null, rvc.getClassLoader(), cx, scope);		      
-
-		      //addStandardObjectsToScope(scope);
-//		      scope.defineFunctionProperties(new String[]{"load"}, RhinoVerticle.class, ScriptableObject.DONTENUM);
-//
-		    //loadMethod.invoke(null, ClassLoader.getSystemClassLoader(), cx, scope, "vertx.js");
-		    load("core/buffer.js");
-		    //load("core/event_bus.js");
-		    load("core/net.js");
-		    load("core/http.js");
-		    load("core/streams.js");
-		    load("core/timers.js");
-		    load("core/utils.js");
-		    load("core/sockjs.js");
+//		    load("core/buffer.js");
+//		    load("core/net.js");
+//		    load("core/http.js");
+//		    load("core/streams.js");
+//		    load("core/timers.js");
+//		    load("core/utils.js");
+//		    load("core/sockjs.js");
 		    load("core/parse_tools.js");
-		    load("core/shared_data.js");
-		    //load("core/filesystem.js");
-		    //load("core/deploy.js");
-		    //load("core/logger.js");
-		    //load("core/env.js");
-		    
-		    String post = "var require = function(x) { var poster = {};  var httpClient = vertx.createHttpClient(); httpClient.setHost('dashku'); httpClient.setPort(3000);\n" + 
-		    		"poster.httpClient = httpClient;\n" + 
-		    		"poster.post = function(postReq) { var request = httpClient.post('POST', postReq.url); request.setChunked(true); request.putHeader('Content-Type', 'application/json'); request.write(postReq.body); request.end(); return request;}\n" + 
-		    		"return poster }\n" + 
-		    		"";
-
-		    VertxLocator.vertx = Vertx.newVertx();
+//		    load("core/shared_data.js");
 		    
 		    ScriptableObject.putProperty(scope, "out", System.out);
+		    ScriptableObject.putProperty(scope, "err", System.err);
 		    
-		    cx.evaluateString(scope, post, "require.js", 1, null);
 		    
-		    String node = "var request = require('request');\n" + 
-		    		"var data = {\n" + 
-		    		"\"value\": 40,\n" + 
-		    		"\"_id\": \"5141e43cb69129400b000067\",\n" + 
-		    		"\"apiKey\": \"dfb6c8d9-58bc-42e1-b6df-3c587c9c4928\"\n" + 
-					"};\n" + 
-					"request.post({url: \"http://dashku:3000/api/transmission\", body: data, json: true});\n" + 
-					
-					"out.println('Request Complete:' + JSON.stringify(request));";
+
+		    String requireJs = URLHelper.getTextFromURL(ClassLoader.getSystemResource("require.js"));
+		    String transmission = URLHelper.getTextFromURL(ClassLoader.getSystemResource("transmission.js"));
+		    String bar = URLHelper.getTextFromURL(ClassLoader.getSystemResource("bar.js"));
+		    String d3 = URLHelper.getTextFromURL(ClassLoader.getSystemResource("d3.js"));
+		    cx.evaluateString(scope, requireJs, "require.js", 1, null);
+		    
+		    log("vertx.js loaded");
+		    
+		    
+		    
+		    
+
+		    log("Issuing Post");
+		    cx.evaluateString(scope, transmission, "transmission.js", 1, null);
+		    Object transmissionData = scope.get("data");
+		    cx.evaluateString(scope, bar, "bar.js", 1, null);
+		    Object barData = scope.get("data");
+		    cx.evaluateString(scope, d3, "d3.js", 1, null);
+		    Object d3Data = scope.get("data");		    
+		    Random random = new Random(System.currentTimeMillis());
+		    
+		    Object transmissionJson = NativeJSON.stringify(cx, scope, transmissionData, null, 2);
+		    Object barJson = NativeJSON.stringify(cx, scope, barData, null, 2);
+		    Object d3Json = NativeJSON.stringify(cx, scope, d3Data, null, 2);
+		    
+		    
+		    
+		    
+		    JsonObject tran = new JsonParser().parse(transmissionJson.toString()).getAsJsonObject();
+		    JsonObject b = new JsonParser().parse(barJson.toString()).getAsJsonObject();
+		    JsonObject d3s = new JsonParser().parse(d3Json.toString()).getAsJsonObject();
+		    for(int i = 0; i < 10000000; i++) {
+		    	final long start = System.currentTimeMillis();
+		    	b.addProperty("value", Math.abs(random.nextInt(10)));
+		    	
+		    	d.post("/api/transmission", b.toString());
+		    	JsonObject dsData = d3s.get("data").getAsJsonObject();
+		    	dsData.addProperty("Stream0", Math.abs(random.nextInt(10)));
+		    	dsData.addProperty("Stream1", Math.abs(random.nextInt(10)));
+		    	dsData.addProperty("Stream2", Math.abs(random.nextInt(10)));
+		    	d.post("/api/transmission", d3s.toString());
+		    	final long elapsed = System.currentTimeMillis()-start;
+		    	tran.addProperty("bigNumber", elapsed);
+		    	d.post("/api/transmission", tran.toString());
+		    	//log("DSDATA:" + d3s.toString());
+		    	Thread.sleep(2000);
+		    }
+		    
+		    //Thread.sleep(4000);
+		    
+		    log("Done");
+		    
 			
-			
-		    cx.evaluateString(scope, node, "node.js", 1, null);
-		    
-			//
 		
-			log("vertx.js loaded");
+			
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}

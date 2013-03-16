@@ -26,7 +26,10 @@ package org.helios.dashkuj.domain;
 
 import java.io.InputStreamReader;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.vertx.java.core.buffer.Buffer;
@@ -49,9 +52,9 @@ public class Widget extends AbstractDashkuDomainObject {
 	@Property("_id")
 	@SerializedName("_id")
 	protected String id = null;
-	@Property("dashboardId")
-	@SerializedName("dashboardId")
 	/** The id of the dashboard this widget lives in */
+	@Property("dashboardId")
+	@SerializedName("dashboardId")	
 	protected String dashboardId = null;
 	/** The widget's height */
 	@Property("height")
@@ -81,8 +84,8 @@ public class Widget extends AbstractDashkuDomainObject {
 	@Property("html")
 	@SerializedName("html")
 	protected String html = null;
-	/** The dashku server provided script to transmit to this widget */
-	protected String serverScript = null;
+	/** The dashku server provided scripts to transmit to this widget, keyed by transmission script type */
+	protected final Map<TransmissionScriptType, String> transmissionScripts = new ConcurrentHashMap<TransmissionScriptType, String>();
 	
 	/** The type of a collection of widgets */
 	public static final TypeToken<Collection<Widget>> WIDGET_COLLECTION_TYPE = new TypeToken<Collection<Widget>>(){/* No Op */};
@@ -179,13 +182,48 @@ public class Widget extends AbstractDashkuDomainObject {
 	}
 	
 	/**
+	 * Synchronously acquires the typed transmission script for this widget
+	 * @param scriptType The type of the script to retrieve
+	 * @param dashku The dashku instance to retrieve with
+	 * @return the script as a string
+	 */
+	public String updateTransmissionScript(TransmissionScriptType scriptType, Dashku dashku) {
+		if(scriptType==null) throw new IllegalArgumentException("The passed transmission script type was null", new Throwable());
+		if(dashku==null) throw new IllegalArgumentException("The passed dashku was null", new Throwable());
+		Resource scriptContent = dashku.getResource(getScriptURI(scriptType));
+		String scriptText = new String(scriptContent.getContent());
+		transmissionScripts.put(scriptType, scriptText);
+		return scriptText;
+	}
+	
+	/**
 	 * {@inheritDoc}
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Widget [\n\theight:");
+		StringBuilder builder = new StringBuilder("Widget [");
+		if(repository!=null) {
+			builder.append("\n\tdomain:");
+			builder.append(repository.getHost()).append(":").append(repository.getPort());			
+		}
+		builder.append("\n\tname:");
+		builder.append(name);
+		builder.append("\n\tid:");
+		builder.append(id);
+		builder.append("\n\tcreated:");
+		builder.append(created);
+		builder.append("\n\tlastUpdated:");
+		builder.append(lastUpdated);
+		builder.append("\n\tdashboardId:");
+		builder.append(dashboardId);
+		if(!transmissionScripts.isEmpty()) {
+			builder.append("\n\ttransmission scripts:");
+			for(TransmissionScriptType t: transmissionScripts.keySet()) {
+				builder.append("\n\t\t").append(t.name());
+			}
+		}
+		builder.append("\n\theight:");
 		builder.append(height);
 		builder.append("\n\twidth:");
 		builder.append(width);
@@ -199,18 +237,8 @@ public class Widget extends AbstractDashkuDomainObject {
 		builder.append(scopedCss);
 		builder.append("\n\thtml:");
 		builder.append(html);
-		builder.append("\n\tid:");
-		builder.append(id);
-		builder.append("\n\tcreated:");
-		builder.append(created);
-		builder.append("\n\tlastUpdated:");
-		builder.append(lastUpdated);
 		builder.append("\n\tcss:");
 		builder.append(css);
-		builder.append("\n\tname:");
-		builder.append(name);
-		builder.append("\n\tdashboardId:");
-		builder.append(dashboardId);		
 		builder.append("\n]");
 		return builder.toString();
 	}

@@ -24,6 +24,11 @@
  */
 package org.helios.dashkuj.api;
 
+import java.util.Collection;
+
+import org.helios.dashkuj.domain.Dashboard;
+import org.helios.dashkuj.domain.Widget;
+
 /**
  * <p>Title: DashkuListener</p>
  * <p>Description: Defines a listener that will listen on asynch dashku responses</p> 
@@ -33,5 +38,33 @@ package org.helios.dashkuj.api;
  */
 
 public interface DashkuListener {
-
+	/**
+	 * Callback when an asynch dashboard collection request completes
+	 * @param dashboards the returned collection of dashboards
+	 */
+	public void onDashboardCollection(Collection<Dashboard> dashboards);
+	
+	/**
+	 * Callback when an asynch dashboard request completes
+	 * @param dashboard the returned dashboard
+	 */
+	public void onDashboard(Dashboard dashboard);
+	
+	/**
+	 * Callback when an asynch widget request completes
+	 * @param widget the returned widget
+	 */
+	public void onWidget(Widget widget);	
+	
+	/**
+	 * Callback when an asynch void request completes
+	 */
+	public void onComplete();
+	
+	/**
+	 * Callback when an asynch request fails 
+	 * @param exception The cause of the failure
+	 */
+	public void onException(DashkuAPIException exception);
+	
 }

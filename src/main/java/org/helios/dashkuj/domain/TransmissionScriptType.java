@@ -70,6 +70,10 @@ public enum TransmissionScriptType {
 	
 	private final String extension;
 	
+	
+	/** The default transmission type */
+	public static final TransmissionScriptType DEFAULT_TYPE = NODE;
+	
 	/**
 	 * Retrieves the TransmissionScriptType for the passed extension
 	 * @param ext The extension of the TransmissionScriptType, which will be trimmed and lowercased.

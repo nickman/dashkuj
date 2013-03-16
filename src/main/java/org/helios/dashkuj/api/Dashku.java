@@ -28,6 +28,7 @@ import java.util.Collection;
 
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.Resource;
+import org.helios.dashkuj.domain.Status;
 import org.helios.dashkuj.domain.Transmission;
 import org.helios.dashkuj.domain.Widget;
 
@@ -60,15 +61,10 @@ public interface Dashku {
 	/** The URI (POST) template for transmitting to a widget */
 	public static final String URI_POST_TRANSMIT = "/api/transmission?apiKey=%s";
 	
-
-//	This is set in the Dashku impl ctor	
-//	/**
-//	 * Sets the Dashku API key. This needs to be called before any API request can be made. 
-//	 * To get your API key, checkout the API docs in <a href="https://github.com/Anephenix/dashku">Dashku</a>.
-//	 * @param apiKey the Dashku API key
-//	 */
-//	public void setApiKey(CharSequence apiKey);
+	/** The content type for JSON */
+	public static final String JSON_CONTENT_TYPE = "application/json";
 	
+
 	
 	/**
 	 * Retrieves all of the dashboards associated WIDGETwith the set Dashku API key
@@ -166,5 +162,14 @@ public interface Dashku {
 	 */
 	public String getApiKey();
 	
+	/**
+	 * Simple data post
+	 * @param uri The URI to post to
+	 * @param data The data to post in JSON format
+	 * @return The returned status
+	 */
+	public Status post(String uri, String data);
+	
+
 	
 }

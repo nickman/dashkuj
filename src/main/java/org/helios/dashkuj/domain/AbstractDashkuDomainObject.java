@@ -58,6 +58,9 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	@SerializedName("name")
 	protected String name = null;
 	
+	/** The domain repository this domain object lives in */
+	protected DomainRepository repository = null;
+	
 	/** The names of the fields that are considered "dirty" */
 	protected final Set<String> dirtyFields = new CopyOnWriteArraySet<String>();
 
@@ -192,6 +195,22 @@ public abstract class AbstractDashkuDomainObject implements DashkuDomainObject {
 	 */
 	public void clearDirtyFields() {
 		dirtyFields.clear();
+	}
+
+	/**
+	 * Returns the domain repository this domain object lives in 
+	 * @return the domain repository this domain object lives in 
+	 */
+	public DomainRepository getRepository() {
+		return repository;
+	}
+
+	/**
+	 * Sets the domain repository this domain object lives in 
+	 * @param repository the repository to set
+	 */
+	public void setRepository(DomainRepository repository) {
+		this.repository = repository;
 	}
 
 }

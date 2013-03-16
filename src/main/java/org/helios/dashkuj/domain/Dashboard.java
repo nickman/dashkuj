@@ -205,23 +205,27 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	 */
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Dashboard [\n\tscreenWidth=");
-		builder.append(screenWidth);
-		builder.append("\n\tuserId=");
-		builder.append(userId);
-		builder.append("\n\tid=");
-		builder.append(id);
-		builder.append("\n\tcreated=");
-		builder.append(created);
-		builder.append("\n\tlastUpdated=");
-		builder.append(lastUpdated);
-		builder.append("\n\tcss=");
-		builder.append(css==null ? "<empty>" : ("" + css.length() + " chars"));
-		builder.append("\n\tname=");
+		StringBuilder builder = new StringBuilder("Dashboard [");
+		if(repository!=null) {
+			builder.append("\n\tdomain:");
+			builder.append(repository.getHost()).append(":").append(repository.getPort());			
+		}
+		builder.append("\n\tname:");
 		builder.append(name);
+		builder.append("\n\tid:");
+		builder.append(id);
+		builder.append("\n\tuserId:");
+		builder.append(userId);
+		builder.append("\n\tcreated:");
+		builder.append(created);
+		builder.append("\n\tlastUpdated:");
+		builder.append(lastUpdated);
+		builder.append("\n\tscreenWidth:");
+		builder.append(screenWidth);
+		builder.append("\n\tcss:");
+		builder.append(css==null ? "<empty>" : ("" + css.length() + " chars"));
 		if(!widgetsById.isEmpty()) {
-			builder.append("\n\twidgets=");
+			builder.append("\n\twidgets:");
 			for(Map.Entry<String, Widget> entry: widgetsById.entrySet()) {
 				builder.append("\n\t\t").append(entry.getKey()).append(":").append(entry.getValue().getName());				
 			}

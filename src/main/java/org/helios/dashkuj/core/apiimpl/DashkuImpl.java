@@ -39,6 +39,7 @@ import org.helios.dashkuj.domain.DomainUnmarshaller;
 import org.helios.dashkuj.domain.Resource;
 import org.helios.dashkuj.domain.Status;
 import org.helios.dashkuj.domain.Transmission;
+import org.helios.dashkuj.domain.TransmissionScriptType;
 import org.helios.dashkuj.domain.Widget;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.vertx.java.core.Handler;
@@ -126,6 +127,11 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		
 		
 		
+		/**
+		 * {@inheritDoc}
+		 * @see org.vertx.java.core.Handler#handle(java.lang.Object)
+		 */
+		@Override
 		public void handle(final HttpClientResponse event) {
 			log.debug("Calling handle(HttpClientResponse)");
 			int bufferSize;
@@ -285,14 +291,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	protected <T> SynchronousResponse<T> newSynchronousResponse(Type responseType) {
 		return new SynchronousResponse<T>(responseType);
 	}
-	
-	
-//	protected Buffer waitForResponse(HttpClientRequest request) {
-//		
-//	}
-	
 
-	
 
 	/**
 	 * {@inheritDoc}
@@ -330,7 +329,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		completeRequest(
 				buildDirtyUpdatePostJSON(dashboard), 
 				client.put(String.format(URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey), responder)
-					.putHeader(HttpHeaders.Names.ACCEPT, "application/json")
+					.putHeader(HttpHeaders.Names.ACCEPT, JSON_CONTENT_TYPE)
 		);					
 		dashboard.updateFrom(responder.getResponse());
 	}
@@ -364,8 +363,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	public String createWidget(CharSequence dashboardId, Widget widget) {
 		log.debug("Calling createWidget()");
 		SynchronousResponse<Widget> responder = newSynchronousResponse(Widget.WIDGET_ID_TYPE.getType(), Widget.WIDGET_UNMARSHALLER);
-		completeRequest(buildDirtyUpdatePostJSON(widget), "application/json",  client.post(String.format(URI_POST_CREATE_WIDGET, dashboardId, apiKey), responder));
-		return widget.updateFrom(responder.getResponse(), dashboardId.toString()).getId();
+		completeRequest(buildDirtyUpdatePostJSON(widget), JSON_CONTENT_TYPE,  client.post(String.format(URI_POST_CREATE_WIDGET, dashboardId, apiKey), responder));
+		widget.updateFrom(responder.getResponse(), dashboardId.toString()).getId();
+		widget.updateTransmissionScript(TransmissionScriptType.DEFAULT_TYPE, this);
+		return widget.getId();
 	}
 
 	/**
@@ -376,8 +377,10 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
 		log.debug("Calling updateWidget()");
 		SynchronousResponse<Widget> responder = newSynchronousResponse(Widget.WIDGET_ID_TYPE.getType(), Widget.WIDGET_UNMARSHALLER);
-		completeRequest(buildDirtyUpdatePostJSON(widget), "application/json",  client.put(String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey), responder));
-		return widget.updateFrom(responder.getResponse(), dashboardId.toString());
+		completeRequest(buildDirtyUpdatePostJSON(widget), JSON_CONTENT_TYPE,  client.put(String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey), responder));
+		widget.updateFrom(responder.getResponse(), dashboardId.toString());
+		widget.updateTransmissionScript(TransmissionScriptType.DEFAULT_TYPE, this);
+		return widget;
 	}
 
 	/**
@@ -401,6 +404,23 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		// TODO Auto-generated method stub
 
 	}
+	
+	/**
+	 * NodeJS fiendly signature data post
+	 * @param uri The URI to post to
+	 * @param data The data to post in JSON format
+	 * @return The returned status
+	 */
+	@Override
+	public Status post(String uri, String data) {
+		log.debug("Calling post({},{})", uri, data);
+		SynchronousResponse<Status> responder = newSynchronousResponse(Dashboard.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
+		completeRequest(new Buffer(data), client.post(uri, responder));					
+		return responder.getResponse();
+	}
+	
+
+	
 
 	/**
 	 * {@inheritDoc}
@@ -414,35 +434,6 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		return responder.getResponse();		
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getHost()
-	 */
-	@Override
-	public String getHost() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getPort()
-	 */
-	@Override
-	public int getPort() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getApiKey()
-	 */
-	@Override
-	public String getApiKey() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	
 	
