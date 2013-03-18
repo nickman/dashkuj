@@ -26,25 +26,19 @@ package org.helios.dashkuj.core;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.helios.dashkuj.api.Dashku;
-import org.helios.dashkuj.core.apiimpl.DashkuImpl;
-import org.helios.dashkuj.domain.Status;
+import org.helios.dashkuj.api.AsynchDashku;
+import org.helios.dashkuj.api.SynchDashku;
+import org.helios.dashkuj.core.apiimpl.AsynchDashkuImpl;
+import org.helios.dashkuj.core.apiimpl.SynchDashkuImpl;
 import org.helios.dashkuj.util.URLHelper;
 import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.ScriptableObject;
-import org.mozilla.javascript.tools.shell.Global;
-import org.mozilla.javascript.tools.shell.Main;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.deploy.impl.rhino.RhinoContextFactory;
-import org.vertx.java.deploy.impl.rhino.RhinoVerticle;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -90,10 +84,10 @@ public class Dashkuj {
 	
 	public static void main(String[] args) {
 		log("Dashkuj test");
-		Dashku d = Dashkuj.getInstance().getDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c4928", "dashku", 3000);
+		SynchDashku d = Dashkuj.getInstance().getSynchDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c4928", "dashku", 3000);
 		//Dashku d = Dashkuj.getInstance().getDashku("5750ac28-96fb-4af5-b218-6f855e03ebcf", "dashku", 3000);
 		//Dashku d = Dashkuj.getInstance().getDashku("5750ac28-96fb-4af5-b218-6f855e03ebcf", "localhost", 8087);
-		((DashkuImpl)d).setTimeout(10000);
+		((SynchDashkuImpl)d).setTimeout(10000);
 		// curl -X POST -d "name=Account%20Management" "http://dashku:3000/api/dashboards?apiKey=5750ac28-96fb-4af5-b218-6f855e03ebcf"
 //		
 //		Collection<Dashboard> dboards = d.getDashboards();
@@ -306,7 +300,10 @@ public class Dashkuj {
 	}
 	
 	/** A cache of synch dashkus keyed by <b><code>host:port</code></b> */
-	protected final Map<String, Dashku> dashkus = new ConcurrentHashMap<String, Dashku>();
+	protected final Map<String, SynchDashku> synchDashkus = new ConcurrentHashMap<String, SynchDashku>();
+	/** A cache of asynch dashkus keyed by <b><code>host:port</code></b> */
+	protected final Map<String, AsynchDashku> asynchDashkus = new ConcurrentHashMap<String, AsynchDashku>();
+	
 	
 	/**
 	 * Acquires the Synchronous Dashku instance for the Dashku server at the passed host and port
@@ -315,19 +312,42 @@ public class Dashkuj {
 	 * @param port The dashku server port
 	 * @return a synchronous dashku 
 	 */
-	public Dashku getDashku(String apiKey, String host, int port) {
+	public SynchDashku getSynchDashku(String apiKey, String host, int port) {
 		final String key = String.format("%s:%s", host, port);
-		Dashku d = dashkus.get(key);
+		SynchDashku d = synchDashkus.get(key);
 		if(d==null) {
-			synchronized(dashkus) {
-				d = dashkus.get(key);
+			synchronized(synchDashkus) {
+				d = synchDashkus.get(key);
 				if(d==null) {
-					d = new DashkuImpl(vertx.createHttpClient(), apiKey, host, port);
-					dashkus.put(key, d);
+					d = new SynchDashkuImpl(vertx.createHttpClient(), apiKey, host, port);
+					synchDashkus.put(key, d);
 				}
 			}
 		}
 		return d;
 	}
+	
+	/**
+	 * Acquires the Synchronous Dashku instance for the Dashku server at the passed host and port
+	 * @param apiKey The dashku api key
+	 * @param host The dashku server host or ip address
+	 * @param port The dashku server port
+	 * @return a synchronous dashku 
+	 */
+	public AsynchDashku getAsynchDashku(String apiKey, String host, int port) {
+		final String key = String.format("%s:%s", host, port);
+		AsynchDashku d = asynchDashkus.get(key);
+		if(d==null) {
+			synchronized(asynchDashkus) {
+				d = asynchDashkus.get(key);
+				if(d==null) {
+					d = new AsynchDashkuImpl(vertx.createHttpClient(), apiKey, host, port);
+					asynchDashkus.put(key, d);
+				}
+			}
+		}
+		return d;
+	}
+	
 
 }

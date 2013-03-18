@@ -35,78 +35,230 @@ import org.helios.dashkuj.domain.Widget;
 /**
  * <p>Title: AsynchDashku</p>
  * <p>Description: The asynchronous dashku API</p> 
+ * <p>Each API call has 3 variations:<ol>
+ * 	<li>Accepts an asynchronous response handler and exception handler. Both callbacks are processed according to the passed handlers if they are not null</li>
+ * 	<li>Accepts an asynchronous response handler and implements an implicit exception handler which simply logs the error</li>
+ *  <li>Non query-only operations have a variation that accepts no handlers. This is essentially a fire-and-forget operation</li>
+ * </ol>
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
  * <p><code>org.helios.dashkuj.api.AsynchDashku</code></p>
  */
 
-public interface AsynchDashku {
+public interface AsynchDashku extends Dashku {
 	
 	/**
 	 * Retrieves all of the dashboards associated with the set Dashku API key
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void getDashboards(DashkuListener listener);
+	public void getDashboards(DashkuHandler<Collection<Dashboard>> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Retrieves all of the dashboards associated with the set Dashku API key
+	 * @param handler the response listener
+	 */
+	public void getDashboards(DashkuHandler<Collection<Dashboard>> handler);
+	
 	
 	/**
 	 * Retrieves a dashboard, given the id of the dashboard.
 	 * @param dashboardId The id of the dashboard to retrieve
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void getDashboard(CharSequence dashboardId, DashkuListener listener);
+	public void getDashboard(CharSequence dashboardId, DashkuHandler<Dashboard> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Retrieves a dashboard, given the id of the dashboard.
+	 * @param dashboardId The id of the dashboard to retrieve
+	 * @param handler the response listener
+	 */
+	public void getDashboard(CharSequence dashboardId, DashkuHandler<Dashboard> handler);
+	
 	
 	/**
 	 * Creates a new dashboard in the Dashku server.
 	 * <p>Note that currently Dashku ignores the <b><code>css</code></b> and <b><code>screenWidth</code></b> attributes. See Dashku Issue <a href="https://github.com/Anephenix/dashku/issues/16">16</a>.</p>
 	 * @param dashboard the dashboard domain model to create
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void createDashboard(Dashboard dashboard, DashkuListener listener);
+	public void createDashboard(Dashboard dashboard, DashkuHandler<Dashboard> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Creates a new dashboard in the Dashku server.
+	 * <p>Note that currently Dashku ignores the <b><code>css</code></b> and <b><code>screenWidth</code></b> attributes. See Dashku Issue <a href="https://github.com/Anephenix/dashku/issues/16">16</a>.</p>
+	 * @param dashboard the dashboard domain model to create
+	 * @param handler the response listener
+	 */
+	public void createDashboard(Dashboard dashboard, DashkuHandler<Dashboard> handler);
+	
+	/**
+	 * Creates a new dashboard in the Dashku server.
+	 * <p>Note that currently Dashku ignores the <b><code>css</code></b> and <b><code>screenWidth</code></b> attributes. See Dashku Issue <a href="https://github.com/Anephenix/dashku/issues/16">16</a>.</p>
+	 * @param dashboard the dashboard domain model to create
+	 */
+	public void createDashboard(Dashboard dashboard);
+	
+	
 	
 	/**
 	 * Updates an existing dashboard in the Dashku server
 	 * @param dashboard the dashboard to update
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void updateDashboard(Dashboard dashboard, DashkuListener listener);
+	public void updateDashboard(Dashboard dashboard, DashkuHandler<Dashboard> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Updates an existing dashboard in the Dashku server
+	 * @param dashboard the dashboard to update
+	 * @param handler the response listener
+	 */
+	public void updateDashboard(Dashboard dashboard, DashkuHandler<Dashboard> handler);
+	
+	/**
+	 * Updates an existing dashboard in the Dashku server
+	 * @param dashboard the dashboard to update
+	 */
+	public void updateDashboard(Dashboard dashboard);
+	
 	
 	/**
 	 * Deletes an existing dashboard from the Dashku server
 	 * @param dashboard the dashboard to delete
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void deleteDashboard(Dashboard dashboard, DashkuListener listener);
+	public void deleteDashboard(Dashboard dashboard, DashkuHandler<Void> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Deletes an existing dashboard from the Dashku server
+	 * @param dashboard the dashboard to delete
+	 * @param handler the response listener
+	 */
+	public void deleteDashboard(Dashboard dashboard, DashkuHandler<Void> handler);
+	
+	/**
+	 * Deletes an existing dashboard from the Dashku server
+	 * @param dashboard the dashboard to delete
+	 */
+	public void deleteDashboard(Dashboard dashboard);
 	
 	/**
 	 * Deletes an existing dashboard from the Dashku server
 	 * @param dashboardId the id of the dashboard to delete
-	 * @param listener the response listener
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public void deleteDashboard(CharSequence dashboardId, DashkuListener listener);
+	public void deleteDashboard(CharSequence dashboardId, DashkuHandler<Void> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Deletes an existing dashboard from the Dashku server
+	 * @param dashboardId the id of the dashboard to delete
+	 * @param handler the response listener
+	 */
+	public void deleteDashboard(CharSequence dashboardId, DashkuHandler<Void> handler);
+	
+	/**
+	 * Deletes an existing dashboard from the Dashku server
+	 * @param dashboardId the id of the dashboard to delete
+	 */
+	public void deleteDashboard(CharSequence dashboardId);	
+	
 	
 	/**
 	 * Creates a new widget in the Dashku server associated to the dashboard with the passed dashboard id
 	 * @param dashboardId The id of the dashboard that this widget belongs to 
 	 * @param widget The widget to create and add to the dashboard
-	 * @return The id of the created widget
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public String createWidget(CharSequence dashboardId, Widget widget);
+	public void createWidget(CharSequence dashboardId, Widget widget, DashkuHandler<Widget> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Creates a new widget in the Dashku server associated to the dashboard with the passed dashboard id
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widget The widget to create and add to the dashboard
+	 * @param handler the response listener
+	 */
+	public void createWidget(CharSequence dashboardId, Widget widget, DashkuHandler<Widget> handler);
+	
+	/**
+	 * Creates a new widget in the Dashku server associated to the dashboard with the passed dashboard id
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widget The widget to create and add to the dashboard
+	 */
+	public void createWidget(CharSequence dashboardId, Widget widget);
+	
+	
 	
 	/**
 	 * Updates an existing widget in the Dashku server
 	 * @param dashboardId The id of the dashboard that this widget belongs to 
 	 * @param widget The widget to update
-	 * @return the updated widget
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public Widget updateWidget(CharSequence dashboardId, Widget widget);
+	public void updateWidget(CharSequence dashboardId, Widget widget, DashkuHandler<Widget> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Updates an existing widget in the Dashku server
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widget The widget to update
+	 * @param handler the response listener
+	 */
+	public void updateWidget(CharSequence dashboardId, Widget widget, DashkuHandler<Widget> handler);
+	
+	/**
+	 * Updates an existing widget in the Dashku server
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widget The widget to update
+	 */
+	public void updateWidget(CharSequence dashboardId, Widget widget);
+	
+	
 	
 	/**
 	 * Deletes an existing widget from the Dashku server
 	 * @param dashboardId The id of the dashboard that this widget belongs to 
 	 * @param widgetId The id of the widget to delete
-	 * @return The id of the deleted widget
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public String deleteWidget(CharSequence dashboardId, CharSequence widgetId);
+	public void deleteWidget(CharSequence dashboardId, CharSequence widgetId, DashkuHandler<Void> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Deletes an existing widget from the Dashku server
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widgetId The id of the widget to delete
+	 * @param handler the response listener
+	 */
+	public void deleteWidget(CharSequence dashboardId, CharSequence widgetId, DashkuHandler<Void> handler);
+	
+	/**
+	 * Deletes an existing widget from the Dashku server
+	 * @param dashboardId The id of the dashboard that this widget belongs to 
+	 * @param widgetId The id of the widget to delete
+	 */
+	public void deleteWidget(CharSequence dashboardId, CharSequence widgetId);
+	
+	/**
+	 * Transmits data to existing widgets
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
+	 * @param transmissions An array of transmissions
+	 */
+	public void transmit(DashkuHandler<Void> handler, DashkuHandler<Exception> errorHandler, Transmission...transmissions);
+	
+	
+	/**
+	 * Transmits data to existing widgets
+	 * @param handler the response listener
+	 * @param transmissions An array of transmissions
+	 */
+	public void transmit(DashkuHandler<Void> handler, Transmission...transmissions);
 	
 	/**
 	 * Transmits data to existing widgets
@@ -114,38 +266,46 @@ public interface AsynchDashku {
 	 */
 	public void transmit(Transmission...transmissions);
 	
+	
 	/**
 	 * Acquires the named resource from the server
 	 * @param resourceUri The URI of the resource
-	 * @return the resource
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public Resource getResource(CharSequence resourceUri);
+	public void getResource(CharSequence resourceUri, DashkuHandler<Resource> handler, DashkuHandler<Exception> errorHandler);
 	
 	/**
-	 * Returns the dashku host or ip address 
-	 * @return the dashku host or ip address
+	 * Acquires the named resource from the server
+	 * @param resourceUri The URI of the resource
+	 * @param handler the response listener
 	 */
-	public String getHost();
+	public void getResource(CharSequence resourceUri, DashkuHandler<Resource> handler);
 	
-	/**
-	 * Returns the dashku port
-	 * @return the dashku port
-	 */
-	public int getPort();
-	
-	/**
-	 * Returns the dashku api key
-	 * @return the dashku api key
-	 */
-	public String getApiKey();
 	
 	/**
 	 * Simple data post
 	 * @param uri The URI to post to
 	 * @param data The data to post in JSON format
-	 * @return The returned status
+	 * @param handler the response listener
+	 * @param errorHandler The error handler
 	 */
-	public Status post(String uri, String data);
+	public void post(String uri, String data, DashkuHandler<Status> handler, DashkuHandler<Exception> errorHandler);
+	
+	/**
+	 * Simple data post
+	 * @param uri The URI to post to
+	 * @param data The data to post in JSON format
+	 * @param handler the response listener
+	 */
+	public void post(String uri, String data, DashkuHandler<Status> handler);
+	
+	/**
+	 * Simple data post
+	 * @param uri The URI to post to
+	 * @param data The data to post in JSON format
+	 */
+	public void post(String uri, String data);
 	
 
 }

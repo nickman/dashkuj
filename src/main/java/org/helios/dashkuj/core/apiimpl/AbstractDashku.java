@@ -29,8 +29,11 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 
+import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
+import org.helios.dashkuj.domain.DomainRepository;
 import org.helios.dashkuj.json.GsonFactory;
+import org.helios.dashkuj.redis.RedisListener;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +54,16 @@ import com.google.gson.JsonPrimitive;
  * <p><code>org.helios.dashkuj.core.apiimpl.AbstractDashku</code></p>
  */
 
-public class AbstractDashku {
+public abstract class AbstractDashku implements Dashku {
 	/** The API key */
 	protected final String apiKey;
 	/** The dashku server host */
 	protected final String host;
 	/** The dashku server port */
 	protected final int port;
+	/** The dashku repository */
+	protected final DomainRepository repository;
+	
 	/** An http client */
 	protected final HttpClient client; 	
 	/** The instance logger */
@@ -89,6 +95,7 @@ public class AbstractDashku {
 		this.apiKey = apiKey;
 		this.host = host;
 		this.port = port;
+		repository = DomainRepository.getInstance(host, port);
 		this.client = client.setHost(host).setPort(port).setConnectTimeout(timeout).setKeepAlive(true);
 		log = LoggerFactory.getLogger(String.format("%s.%s:%s", getClass().getName(), this.host, this.port));
 		genericExceptionHandler = new Handler<Exception>() {

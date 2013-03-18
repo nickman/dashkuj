@@ -63,6 +63,13 @@ public class RedisPubSub implements ConnectionListener, RedisListener {
 	private final AtomicBoolean listenerStarted = new AtomicBoolean(false);
 	
 	
+	/**
+	 * Indicates if the listener is up and listening
+	 * @return true if the listener is up and listening, false otherwise
+	 */
+	public boolean isStarted() {
+		return listenerStarted.get();
+	}
 	
 	
 	/**

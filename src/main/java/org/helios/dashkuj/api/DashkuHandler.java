@@ -24,48 +24,17 @@
  */
 package org.helios.dashkuj.api;
 
-import org.helios.dashkuj.domain.Transmission;
+import org.vertx.java.core.Handler;
 
 /**
- * <p>Title: AbstractDashku</p>
- * <p>Description: Abstract base class for {@link Dashku} implementations</p> 
+ * <p>Title: DashkuHandler</p>
+ * <p>Description: Generic dashku asynch event listener</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.dashkuj.api.AbstractDashku</code></p>
+ * <p><code>org.helios.dashkuj.api.DashkuHandler</code></p>
+ * @param <E> The expected type of the event
  */
 
-public abstract class AbstractDashku implements Dashku {
-	/** The API key */
-	protected final String apiKey;
-
-	/**
-	 * Creates a new AbstractDashku
-	 * @param apiKey The dashku api key
-	 */
-	protected AbstractDashku(String apiKey) {
-		if(apiKey==null || apiKey.trim().isEmpty()) throw new IllegalArgumentException("The passed APIKey was null", new Throwable());
-		this.apiKey = apiKey;
-		
-	}
-
-
-
-
-
-
-
-
-
-
-
-	/**
-	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#transmit(org.helios.dashkuj.domain.Transmission[])
-	 */
-	@Override
-	public void transmit(Transmission... transmissions) {
-		// TODO Auto-generated method stub
-		
-	}
+public interface DashkuHandler<E> extends Handler<E> {
 
 }

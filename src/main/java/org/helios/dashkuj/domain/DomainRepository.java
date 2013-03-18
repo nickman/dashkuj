@@ -24,6 +24,8 @@
  */
 package org.helios.dashkuj.domain;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,8 +53,18 @@ public class DomainRepository implements RedisListener {
 	private final String host;
 	/** The dashku instance port */
 	private final int port;
+	/** The dashku redis listener */
+	private final RedisPubSub redisPubSub;
 	
 	
+	/**
+	 * Indicates if the repository is being live updated by the pub/sub listener
+	 * @return true if the repository is being live updated by the pub/sub listener, false otherwise
+	 */
+	public boolean isLive() {
+		return redisPubSub.isStarted();
+	}
+
 	/**
 	 * Acquires the domain repository for the passed host/port
 	 * @param host The dashku host or ip address
@@ -80,8 +92,109 @@ public class DomainRepository implements RedisListener {
 	private DomainRepository(String host, int port) {
 		this.host = host;
 		this.port = port;
-		RedisPubSub.getInstance(host, port).registerListener(this);
+		redisPubSub = RedisPubSub.getInstance(host, port); 
+		redisPubSub.registerListener(this);
 	}
+	
+	/**
+	 * Synchronizes the repository with the passed dashboards
+	 * @param dashboards the dashboards to synch into the repository
+	 * @return the same dashboards for fluent style updates
+	 */
+	public Collection<Dashboard> synch(Collection<Dashboard> dashboards) {
+		if(!isLive()) {
+			for(Dashboard d: dashboards) {
+				synch(d);
+			}
+		}
+		return dashboards;
+	}
+	
+	/**
+	 * Synchronizes the repository dashboard with the passed dashboard
+	 * @param dashboard the dashboard to synch into the repository\
+	 * @return the same dashboard for fluent style updates
+	 */
+	public Dashboard synch(Dashboard dashboard) {
+		if(!isLive()) {
+			Dashboard d = dashboardsById.get(dashboard.getId());
+			if(d==null) {
+				synchronized(dashboardsById) {
+					d = dashboardsById.get(dashboard.getId());
+					if(d==null) {
+						d = dashboard;
+						dashboardsById.put(d.getId(), d);
+						for(Widget w: d.widgets) {
+							synch(w);
+						}
+						return dashboard;
+					}
+				}
+			}
+			d.updateFrom(dashboard);
+		}
+		return dashboard;
+	}
+	
+	/**
+	 * Deletes the identified dashboard from the repository
+	 * @param dashboardId the id of the dashboard to delete
+	 * @return the id of the deleted dashboard or null if it was not found 
+	 */
+	public String deleteDashboard(String dashboardId) {
+		if(dashboardId!=null) {
+			Dashboard d = dashboardsById.remove(dashboardId);
+			if(d!=null) {
+				for(Widget w: d.widgets) {
+					deleteWidget(w.getId());
+				}
+				return d.getId();
+			}
+			return null;
+		}
+		return null;
+		
+	}
+	
+	/**
+	 * Deletes the identified widget from the repository
+	 * @param widgetId the id of the widget to delete
+	 * @return the id of the deleted widget or null if it was not found 
+	 */
+	public String deleteWidget(String widgetId) {
+		if(widgetId!=null) {
+			Widget w = widgetsById.remove(widgetId);
+			return w==null ? null : w.getId();
+			
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Synchronizes the repository widget with the passed widget
+	 * @param widget the widget to synch into the repository
+	 * @return the same widget for fluent style updates
+	 */
+	public Widget synch(Widget widget) {
+		if(!isLive()) {
+			Widget w = widgetsById.get(widget.getId());
+			if(w==null) {
+				synchronized(widgetsById) {
+					w = widgetsById.get(widget.getId());
+					if(w==null) {
+						w = widget;
+						widgetsById.put(w.getId(), w);
+						return widget;
+					}
+				}
+			}
+			w.updateFrom(widget);
+		}
+		return widget;
+		
+	}
+	
 	
 	/**
 	 * Returns the dashboard with the passed id, or null if one is not found.
@@ -91,6 +204,22 @@ public class DomainRepository implements RedisListener {
 	public Dashboard getDashboardOrNull(String dashboardId) {
 		if(dashboardId==null || dashboardId.trim().isEmpty()) return null;
 		return dashboardsById.get(dashboardId);
+	}
+	
+	/**
+	 * Returns all the dashboards in this repository.
+	 * @return all the dashboards in this repository.
+	 */
+	public Collection<Dashboard> getDashboards() {
+		return new ArrayList<Dashboard>(dashboardsById.values());
+	}
+	
+	/**
+	 * Flushes the repo
+	 */
+	public void flush() {
+		dashboardsById.clear();
+		widgetsById.clear();
 	}
 	
 	/**

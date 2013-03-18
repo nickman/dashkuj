@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.helios.dashkuj.api.Dashku;
+import org.helios.dashkuj.api.SynchDashku;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainUnmarshaller;
 import org.helios.dashkuj.domain.Resource;
@@ -48,36 +48,36 @@ import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientResponse;
 
 /**
- * <p>Title: DashkuImpl</p>
+ * <p>Title: SynchDashkuImpl</p>
  * <p>Description: A synchronous Dashku API implementation</p> 
  * <p>Company: Helios Development Group LLC</p>
  * @author Whitehead (nwhitehead AT heliosdev DOT org)
- * <p><code>org.helios.dashkuj.core.apiimpl.DashkuImpl</code></p>
+ * <p><code>org.helios.dashkuj.core.apiimpl.SynchDashkuImpl</code></p>
  */
 
-public class DashkuImpl extends AbstractDashku implements Dashku {
+public class SynchDashkuImpl extends AbstractDashku implements SynchDashku {
 
 	/**
-	 * Creates a new DashkuImpl
+	 * Creates a new SynchDashkuImpl
 	 * @param client The http client for connecting to the dashku server
 	 * @param apiKey The dashku api key
 	 * @param host The dashku server host or ip address
 	 * @param port The dashku server port
 	 */
-	public DashkuImpl(HttpClient client, String apiKey, String host, int port) {
+	public SynchDashkuImpl(HttpClient client, String apiKey, String host, int port) {
 		super(client, apiKey, host, port);
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getDashboards()
+	 * @see org.helios.dashkuj.api.SynchDashku#getDashboards()
 	 */
 	@Override
 	public Collection<Dashboard> getDashboards() {
 		log.debug("Calling getDashboards()");
 		SynchronousResponse<Collection<Dashboard>> responder = newSynchronousResponse(Dashboard.DASHBOARD_COLLECTION_TYPE.getType(), Dashboard.DASHBOARD_COLLECTION_UNMARSHALLER);
 		client.get(String.format(URI_GET_DASHBOARDS, apiKey), responder).setTimeout(timeout).end();
-		return responder.getResponse();
+		return repository.synch(responder.getResponse());
 	}
 	
 	
@@ -87,7 +87,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	 * <p>Description: A future for making the http request handling synchronous</p> 
 	 * <p>Company: Helios Development Group LLC</p>
 	 * @author Whitehead (nwhitehead AT heliosdev DOT org)
-	 * <p><code>org.helios.dashkuj.core.apiimpl.DashkuImpl.SynchronousResponse</code></p>
+	 * <p><code>org.helios.dashkuj.core.apiimpl.SynchDashkuImpl.SynchronousResponse</code></p>
 	 * @param <T> The expected type of the response
 	 */
 	protected class SynchronousResponse<T> implements Future<T>, Handler<HttpClientResponse> {
@@ -295,32 +295,32 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getDashboard(java.lang.CharSequence)
+	 * @see org.helios.dashkuj.api.SynchDashku#getDashboard(java.lang.CharSequence)
 	 */
 	@Override
 	public Dashboard getDashboard(CharSequence dashboardId) {
 		log.debug("Calling getDashboard()");
 		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
 		client.get(String.format(URI_GET_DASHBOARD, dashboardId, apiKey), responder).setTimeout(timeout).end();
-		return responder.getResponse();
+		return repository.synch(responder.getResponse());
 
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#createDashboard(org.helios.dashkuj.domain.Dashboard)
+	 * @see org.helios.dashkuj.api.SynchDashku#createDashboard(org.helios.dashkuj.domain.Dashboard)
 	 */
 	@Override
 	public String createDashboard(Dashboard dashboard) {
 		log.debug("Calling createDashboard()");
 		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
 		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder));					
-		return dashboard.updateFrom(responder.getResponse()).getId();
+		return repository.synch(dashboard.updateFrom(responder.getResponse())).getId();
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#updateDashboard(org.helios.dashkuj.domain.Dashboard)
+	 * @see org.helios.dashkuj.api.SynchDashku#updateDashboard(org.helios.dashkuj.domain.Dashboard)
 	 */
 	@Override
 	public void updateDashboard(Dashboard dashboard) {
@@ -331,33 +331,33 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 				client.put(String.format(URI_PUT_UPDATE_DASHBOARD, dashboard.getId(), apiKey), responder)
 					.putHeader(HttpHeaders.Names.ACCEPT, JSON_CONTENT_TYPE)
 		);					
-		dashboard.updateFrom(responder.getResponse());
+		repository.synch(dashboard.updateFrom(responder.getResponse()));
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(org.helios.dashkuj.domain.Dashboard)
+	 * @see org.helios.dashkuj.api.SynchDashku#deleteDashboard(org.helios.dashkuj.domain.Dashboard)
 	 */
 	@Override
 	public String deleteDashboard(Dashboard dashboard) {
-		return deleteDashboard(dashboard.getId());
+		return repository.deleteDashboard(deleteDashboard(dashboard.getId()));
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteDashboard(java.lang.CharSequence)
+	 * @see org.helios.dashkuj.api.SynchDashku#deleteDashboard(java.lang.CharSequence)
 	 */
 	@Override
 	public String deleteDashboard(CharSequence dashboardId) {
 		log.debug("Calling deleteDashboard()");
 		SynchronousResponse<Status> responder = newSynchronousResponse(Status.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
 		completeRequest(client.delete(String.format(URI_DELETE_DELETE_DASHBOARD, dashboardId, apiKey), responder));			
-		return responder.getResponse().getDashboardId();
+		return repository.deleteDashboard(responder.getResponse().getDashboardId());
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#createWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
+	 * @see org.helios.dashkuj.api.SynchDashku#createWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
 	 */
 	@Override
 	public String createWidget(CharSequence dashboardId, Widget widget) {
@@ -366,12 +366,12 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		completeRequest(buildDirtyUpdatePostJSON(widget), JSON_CONTENT_TYPE,  client.post(String.format(URI_POST_CREATE_WIDGET, dashboardId, apiKey), responder));
 		widget.updateFrom(responder.getResponse(), dashboardId.toString()).getId();
 		widget.updateTransmissionScript(TransmissionScriptType.DEFAULT_TYPE, this);
-		return widget.getId();
+		return repository.synch(widget).getId();
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#updateWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
+	 * @see org.helios.dashkuj.api.SynchDashku#updateWidget(java.lang.CharSequence, org.helios.dashkuj.domain.Widget)
 	 */
 	@Override
 	public Widget updateWidget(CharSequence dashboardId, Widget widget) {
@@ -380,30 +380,31 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 		completeRequest(buildDirtyUpdatePostJSON(widget), JSON_CONTENT_TYPE,  client.put(String.format(URI_PUT_UPDATE_WIDGET, dashboardId, widget.getId(), apiKey), responder));
 		widget.updateFrom(responder.getResponse(), dashboardId.toString());
 		widget.updateTransmissionScript(TransmissionScriptType.DEFAULT_TYPE, this);
-		return widget;
+		return repository.synch(widget);
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#deleteWidget(java.lang.CharSequence, java.lang.CharSequence)
+	 * @see org.helios.dashkuj.api.SynchDashku#deleteWidget(java.lang.CharSequence, java.lang.CharSequence)
 	 */
 	@Override
 	public String deleteWidget(CharSequence dashboardId, CharSequence widgetId) {
 		log.debug("Calling deleteWidget({}, {})", dashboardId, widgetId);
 		SynchronousResponse<Status> responder = newSynchronousResponse(Status.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
 		completeRequest(client.delete(String.format(URI_DELETE_DELETE_WIDGET, dashboardId, widgetId, apiKey), responder));
-		return responder.getResponse().getWidgetId();
+		return repository.deleteWidget(responder.getResponse().getWidgetId());
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#transmit(org.helios.dashkuj.domain.Transmission[])
+	 * @see org.helios.dashkuj.api.SynchDashku#transmit(org.helios.dashkuj.domain.Transmission[])
 	 */
 	@Override
 	public void transmit(Transmission... transmissions) {
 		// TODO Auto-generated method stub
 
 	}
+	
 	
 	/**
 	 * NodeJS fiendly signature data post
@@ -414,7 +415,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 	@Override
 	public Status post(String uri, String data) {
 		log.debug("Calling post({},{})", uri, data);
-		SynchronousResponse<Status> responder = newSynchronousResponse(Dashboard.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
+		SynchronousResponse<Status> responder = newSynchronousResponse(Status.STATUS_TYPE.getType(), Status.STATUS_UNMARSHALLER);
 		completeRequest(new Buffer(data), client.post(uri, responder));					
 		return responder.getResponse();
 	}
@@ -424,7 +425,7 @@ public class DashkuImpl extends AbstractDashku implements Dashku {
 
 	/**
 	 * {@inheritDoc}
-	 * @see org.helios.dashkuj.api.Dashku#getResource(java.lang.CharSequence)
+	 * @see org.helios.dashkuj.api.SynchDashku#getResource(java.lang.CharSequence)
 	 */
 	@Override
 	public Resource getResource(CharSequence resourceUri) {

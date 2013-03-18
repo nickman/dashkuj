@@ -29,7 +29,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.helios.dashkuj.api.AsynchDashku;
 import org.helios.dashkuj.api.Dashku;
+import org.helios.dashkuj.api.DashkuHandler;
+import org.helios.dashkuj.api.SynchDashku;
 import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.vertx.java.core.buffer.Buffer;
@@ -185,15 +188,23 @@ public class Widget extends AbstractDashkuDomainObject {
 	 * Synchronously acquires the typed transmission script for this widget
 	 * @param scriptType The type of the script to retrieve
 	 * @param dashku The dashku instance to retrieve with
-	 * @return the script as a string
 	 */
-	public String updateTransmissionScript(TransmissionScriptType scriptType, Dashku dashku) {
+	public void updateTransmissionScript(final TransmissionScriptType scriptType, Dashku dashku) {
 		if(scriptType==null) throw new IllegalArgumentException("The passed transmission script type was null", new Throwable());
 		if(dashku==null) throw new IllegalArgumentException("The passed dashku was null", new Throwable());
-		Resource scriptContent = dashku.getResource(getScriptURI(scriptType));
-		String scriptText = new String(scriptContent.getContent());
-		transmissionScripts.put(scriptType, scriptText);
-		return scriptText;
+		if(dashku instanceof SynchDashku) {
+			transmissionScripts.put(scriptType, new String(
+					((SynchDashku)dashku).getResource(getScriptURI(scriptType)).getContent()
+			));
+		} else {
+			((AsynchDashku)dashku).getResource(getScriptURI(scriptType), new DashkuHandler<Resource>() {
+				@Override
+				public void handle(Resource event) {
+					transmissionScripts.put(scriptType, new String(event.getContent()));
+					
+				}
+			});
+		}
 	}
 	
 	/**
