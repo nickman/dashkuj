@@ -28,7 +28,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +36,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.vertx.java.core.buffer.Buffer;
+
+import redis.clients.jedis.Jedis;
 
 import com.github.jmkgreen.morphia.annotations.Embedded;
 import com.github.jmkgreen.morphia.annotations.Entity;
@@ -47,13 +48,13 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
-import com.mongodb.CommandResult;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.Mongo;
 
 /**
@@ -259,18 +260,23 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 
 	
 
-/*	public static void main(String[] args) {
+	public static void main(String[] args) {
 		try {
+			Jedis jedis = new Jedis("dashku");
+			Map<String, String> apiKeys = jedis.hgetAll("apiKeys");
+			log(apiKeys);
 			Mongo mongo = new Mongo("dashku");
 			DB db = mongo.getDB("dashku_development");
-			CommandResult cr = db.command("serverStatus");
-			Date date = cr.getDate("localTime");
-			
-			JsonElement je = new JsonParser().parse(cr.toString());
-			String jsDate = je.getAsJsonObject().get("localTime").getAsJsonObject().getAsJsonPrimitive("$date").toString();
-			//log(GsonFactory.getInstance().printer().toJson(je));
-			log("Date:[" + date + "]");
-			log("JS-Date:[" + jsDate + "]");
+			DBCollection dbColl = db.getCollection("users");
+			DBCursor cursor = dbColl.find();
+//			CommandResult cr = db.command("serverStatus");
+//			Date date = cr.getDate("localTime");
+//			
+//			JsonElement je = new JsonParser().parse(cr.toString());
+//			String jsDate = je.getAsJsonObject().get("localTime").getAsJsonObject().getAsJsonPrimitive("$date").toString();
+//			//log(GsonFactory.getInstance().printer().toJson(je));
+//			log("Date:[" + date + "]");
+//			log("JS-Date:[" + jsDate + "]");
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}
@@ -278,7 +284,7 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	
 	public static void log(Object msg) {
 		System.out.println(msg);
-	}*/
+	}
 	
 	/**
 	 * Returns an unmodifiable collection of this dashboard's widgets
