@@ -63,19 +63,18 @@ public class BaseTest {
 	protected static String defaultDashkuHost = "dashku";
 	/** The default port */
 	protected static int defaultDashkuPort = 3000;
-	/** The default api key */
-	protected static String defaultApiKey = "2dc45616-293e-409d-81f2-befc464dd0d0";
 	/** The default mongo database name */
 	protected static String defaultDbName = "dashku_development";
 	
-	/** The default user name */
-	protected static String defaultUserName = "helios2";
 	/** A map of user names keyed by apiKey */
 	protected static final Map<String, String> apiKey2userId = new HashMap<String, String>();
 	/** A map of apiKeys keyed by userName */
 	protected static final Map<String, String> userId2apiKey = new HashMap<String, String>();
 	/** A map of userIds keyed by userName */
 	protected static final Map<String, String> userName2userId = new HashMap<String, String>();
+	/** A map of userNames keyed by userId */
+	protected static final Map<String, String> userId2userName = new HashMap<String, String>();
+	
 	
 	/** The currently executing test name */
 	@Rule public final TestName name = new TestName();
@@ -146,7 +145,8 @@ public class BaseTest {
 					apiKey2userId.put(apiKey, userId);
 					userId2apiKey.put(userId, apiKey);
 					userName2userId.put(userName, userId);
-					log("Cached user [" + userName + "]:" + userId);
+					userId2userName.put(userId, userName);
+					log("Cached user\n\t:" + userName + "\n\t" + userId + "\n\t" + apiKey);
 				}
 			} finally {
 				if(cursor!=null) cursor.close();
@@ -205,6 +205,8 @@ public class BaseTest {
 	protected Collection<Dashboard> getDbDashboardsByApiKey(String apiKey) {
 		String userId = apiKey2userId.get(apiKey);
 		Assert.assertNotNull("The user for apiKey [" + apiKey + "] was null", userId);
+		String userName = userId2userName.get(userId);
+		Assert.assertNotNull("The username for apiKey [" + apiKey + "] was null", userName);
 		return mongoDs.find(Dashboard.class, "userId", new ObjectId(userId)).asList();
 	}
 	

@@ -25,6 +25,9 @@
 package test.org.helios.dashkuj;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import junit.framework.Assert;
 
@@ -32,7 +35,8 @@ import org.helios.dashkuj.api.SynchDashku;
 import org.helios.dashkuj.core.apiimpl.SynchDashkuImpl;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainRepository;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -44,18 +48,35 @@ import org.junit.Test;
  */
 
 public class SynchronousDashkuTestCase extends BaseTest {
-	/** The synchronous dashku */
-	protected SynchDashku sd = null;
+	/** The synchronous dashkus keyed by apiKey */
+	protected static final Map<String, SynchDashku> sds = new HashMap<String, SynchDashku>();
+	
 	/** The dashku repository */
-	protected DomainRepository repo = null;
+	protected static DomainRepository repo = null;
+	
+	/**
+	 * Closes the synch dashkus
+	 */
+	@AfterClass
+	public static void tearDownAfterClass()  {
+		for(SynchDashku sd: sds.values()) {
+			sd.dispose();
+		}
+		sds.clear();
+	}
+	
+	
 	
 	/**
 	 * Acquires the synchronous dashku
 	 */
-	@Before
-	public void getDashku()  {
-		if(sd==null) {
-			sd = DASH.getSynchDashku(defaultApiKey, defaultDashkuHost, defaultDashkuPort);
+	@BeforeClass
+	public static void getDashku()  {
+		if(sds.isEmpty()) {
+			for(String apiKey: apiKey2userId.keySet()) {
+				SynchDashku sd = DASH.getSynchDashku(apiKey, defaultDashkuHost, defaultDashkuPort);
+				sds.put(sd.getApiKey(), sd);				
+			}
 			repo = DomainRepository.getInstance(defaultDashkuHost, defaultDashkuPort);
 		}
 		repo.flush();
@@ -66,21 +87,21 @@ public class SynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void getDashboards() {
-		Collection<Dashboard> dashboards = sd.getDashboards();
-		for(Dashboard d: dashboards) {
-			log("D1 ID:[" + d.getId() + "]");
-			Assert.assertNotNull("The API Dash was null", d);
-			log("Fetching DB Dash [" + d.getId() + "]");
-			Dashboard dbD = getDbDashboard(d.getId());			
-			Assert.assertNotNull("The DB Dash was null for id [" + d.getId() + "]" , dbD);
-			compareDashboards(d, dbD);
+		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {			
+			SynchDashku sd = entry.getValue();
+			Collection<Dashboard> dashboards = sd.getDashboards();
+			for(Dashboard d: dashboards) {
+				Assert.assertNotNull("The API Dash was null", d);
+				Dashboard dbD = getDbDashboard(d.getId());			
+				Assert.assertNotNull("The DB Dash was null for id [" + d.getId() + "]" , dbD);
+				compareDashboards(d, dbD);
+			}
+			Collection<Dashboard> repoDashboards = repo.getDashboards();
+			Assert.assertEquals("The number of dashboards is not the same from the API as in the repo", dashboards.size(), repoDashboards.size());
+			for(Dashboard d: dashboards) {
+				compareDashboards(d, repo.getDashboard(d.getId()));
+			}
 		}
-		Collection<Dashboard> repoDashboards = repo.getDashboards();
-		Assert.assertEquals("The number of dashboards is not the same from the API as in the repo", dashboards.size(), repoDashboards.size());
-		for(Dashboard d: dashboards) {
-			compareDashboards(d, repo.getDashboard(d.getId()));
-		}
-		
 	}
 	
 	/**
@@ -88,9 +109,16 @@ public class SynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void getDashboardUsingApiKey() {
-		Dashboard d1 = getDbDashboardsByApiKey(defaultApiKey).iterator().next();		
-		Dashboard d2 = sd.getDashboard(d1.getId());
-		compareDashboards(d1, d2);
+		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {			
+			SynchDashku sd = entry.getValue();
+			String apiKey = sd.getApiKey();
+			Iterator<Dashboard> diter = getDbDashboardsByApiKey(apiKey).iterator();
+			while(diter.hasNext()) {
+				Dashboard d1 = diter.next();		
+				Dashboard d2 = sd.getDashboard(d1.getId());
+				compareDashboards(d1, d2);	
+			}
+		}
 	}
 	
 	/**
@@ -98,9 +126,20 @@ public class SynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void getDashboardUsingUserName() {
-		Dashboard d1 = getDbDashboardsByUser(defaultUserName).iterator().next();		
-		Dashboard d2 = sd.getDashboard(d1.getId());
-		compareDashboards(d1, d2);
+		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {			
+			SynchDashku sd = entry.getValue();
+			String apiKey = sd.getApiKey();
+			String userId = apiKey2userId.get(apiKey);
+			Assert.assertNotNull("The userId was null", userId);
+			String userName = userId2userName.get(userId);
+			Assert.assertNotNull("The user name was null", userName);
+			Iterator<Dashboard> diter = getDbDashboardsByUser(userName).iterator();
+			while(diter.hasNext()) {
+				Dashboard d1 = diter.next();		
+				Dashboard d2 = sd.getDashboard(d1.getId());
+				compareDashboards(d1, d2);	
+			}
+		}
 	}
 	
 	

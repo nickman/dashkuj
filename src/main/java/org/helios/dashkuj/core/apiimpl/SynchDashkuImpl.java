@@ -164,7 +164,7 @@ public class SynchDashkuImpl extends AbstractDashku implements SynchDashku {
 				public void handle(Void endEvent) {
 					if(log.isDebugEnabled()) {
 						log.debug("Calling endHandler:{} Bytes", content.length());
-						log.info("Response:[{}]", render(event, content));
+						log.debug("Response:[{}]", render(event, content));
 					}
 					try {
 						if(Status.containsStatus(content)) {
@@ -299,8 +299,9 @@ public class SynchDashkuImpl extends AbstractDashku implements SynchDashku {
 	 */
 	@Override
 	public Dashboard getDashboard(CharSequence dashboardId) {
-		log.debug("Calling getDashboard()");
+		log.debug("Calling getDashboard({})", dashboardId);
 		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
+		log.debug("getDashboard URI:[{}]", String.format(URI_GET_DASHBOARD, dashboardId, apiKey));
 		client.get(String.format(URI_GET_DASHBOARD, dashboardId, apiKey), responder).setTimeout(timeout).end();
 		return repository.synch(responder.getResponse());
 

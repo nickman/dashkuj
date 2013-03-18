@@ -26,7 +26,9 @@ package test.org.helios.dashkuj;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,7 +41,9 @@ import org.helios.dashkuj.core.apiimpl.AsynchDashkuImpl;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainRepository;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -51,14 +55,14 @@ import org.junit.Test;
  */
 
 public class AsynchronousDashkuTestCase extends BaseTest {
-	/** The asynchronous dashku */
-	protected AsynchDashku asd = null;
+	/** The asynchronous dashkus keyed by apiKey */
+	protected static final Map<String, AsynchDashku> asds = new HashMap<String, AsynchDashku>();
 	/** The asynch waiter for this test */
 	protected final AtomicReference<AsynchWaiter> asynchWaiter = new AtomicReference<AsynchWaiter>(null);
 	/** A list of objects collected in the asynch callback */
 	final List<Object> testSet = new ArrayList<Object>();
 	/** The dashku repository */
-	protected DomainRepository repo = null;
+	protected static DomainRepository repo = null;
 
 	/** The default asynch test op timeout */
 	public static final long DEFAULT_TIMEOUT;
@@ -76,18 +80,41 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 	}
 	
 	/**
+	 * Closes the asynch dashkus
+	 */
+	@AfterClass
+	public static void tearDownAfterClass()  {
+		for(AsynchDashku asd: asds.values()) {
+			asd.dispose();
+		}
+		asds.clear();
+	}
+	
+	
+	/**
 	 * Acquires the synchronous dashku and initializes a new asynch waiter
 	 */
-	@Before
-	public void getDashku()  {
-		if(asd==null) {
-			asd = DASH.getAsynchDashku(defaultApiKey, defaultDashkuHost, defaultDashkuPort);
+	@BeforeClass
+	public static void getDashku()  {
+		if(asds.isEmpty()) {
+			for(String apiKey: apiKey2userId.keySet()) {
+				AsynchDashku asd = DASH.getAsynchDashku(apiKey, defaultDashkuHost, defaultDashkuPort);
+				asds.put(asd.getApiKey(), asd);
+			}
 			repo = DomainRepository.getInstance(defaultDashkuHost, defaultDashkuPort);			
 		}
+	}
+	
+	/**
+	 * Flushes the repo and resets the asynchs
+	 */
+	@Before
+	public void getAsynchs()  {
 		repo.flush();
 		asynchWaiter.set(new AsynchWaiter());
-		testSet.clear();
+		testSet.clear();		
 	}
+	
 	
 	/**
 	 * Cleans up the latch
@@ -104,32 +131,34 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 	 * @throws Exception thrown on any error
 	 */
 	@Test
-	public void getDashboards() throws Exception {		
-		asd.getDashboards(new DashkuHandler<Collection<Dashboard>>(){
-			@Override
-			public void handle(Collection<Dashboard> event) {
-				testSet.addAll(event);
-				asynchWaiter.get().countDown();
+	public void getDashboards() throws Exception {
+		for(Map.Entry<String, AsynchDashku> entry: asds.entrySet()) {			
+			AsynchDashku asd = entry.getValue();			
+			asd.getDashboards(new DashkuHandler<Collection<Dashboard>>(){
+				@Override
+				public void handle(Collection<Dashboard> event) {
+					testSet.addAll(event);
+					asynchWaiter.get().countDown();
+				}
+			});
+			asynchWaiter.get().waitForLatch();
+			log("Wait Complete");
+			
+			for(Object t: testSet) {
+				Dashboard d = (Dashboard)t;
+				Assert.assertNotNull("The API Dash was null", d);
+				log("Fetching DB Dash [" + d.getId() + "]");
+				Dashboard dbD = getDbDashboard(d.getId());			
+				Assert.assertNotNull("The DB Dash was null for id [" + d.getId() + "]" , dbD);
+				compareDashboards(d, dbD);
+			}		
+			Collection<Dashboard> repoDashboards = repo.getDashboards();
+			Assert.assertEquals("The number of dashboards is not the same from the API as in the repo", testSet.size(), repoDashboards.size());
+			for(Object t: testSet) {
+				Dashboard d = (Dashboard)t;
+				compareDashboards(d, repo.getDashboard(d.getId()));
 			}
-		});
-		asynchWaiter.get().waitForLatch();
-		log("Wait Complete");
-		
-		for(Object t: testSet) {
-			Dashboard d = (Dashboard)t;
-			Assert.assertNotNull("The API Dash was null", d);
-			log("Fetching DB Dash [" + d.getId() + "]");
-			Dashboard dbD = getDbDashboard(d.getId());			
-			Assert.assertNotNull("The DB Dash was null for id [" + d.getId() + "]" , dbD);
-			compareDashboards(d, dbD);
-		}		
-		Collection<Dashboard> repoDashboards = repo.getDashboards();
-		Assert.assertEquals("The number of dashboards is not the same from the API as in the repo", testSet.size(), repoDashboards.size());
-		for(Object t: testSet) {
-			Dashboard d = (Dashboard)t;
-			compareDashboards(d, repo.getDashboard(d.getId()));
 		}
-		
 	}
 	
 	/**
@@ -138,16 +167,21 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void getDashboardUsingApiKey() throws Exception {
-		final Dashboard d1 = getDbDashboardsByApiKey(defaultApiKey).iterator().next();		
-		asd.getDashboard(d1.getId(), new DashkuHandler<Dashboard>(){
-			@Override
-			public void handle(Dashboard d2) {				
-				testSet.add(d2);
-				asynchWaiter.get().countDown();
-			}
-		});
-		asynchWaiter.get().waitForLatch();
-		compareDashboards(d1, (Dashboard)testSet.iterator().next());
+		for(Map.Entry<String, AsynchDashku> entry: asds.entrySet()) {			
+			AsynchDashku asd = entry.getValue();
+			String apiKey = asd.getApiKey();
+			final Dashboard d1 = getDbDashboardsByApiKey(apiKey).iterator().next();		
+			asd.getDashboard(d1.getId(), new DashkuHandler<Dashboard>(){
+				@Override
+				public void handle(Dashboard d2) {				
+					testSet.add(d2);
+					asynchWaiter.get().countDown();
+				}
+			});
+			asynchWaiter.get().waitForLatch();
+			compareDashboards(d1, (Dashboard)testSet.iterator().next());
+			
+		}		
 	}
 	
 	/**
@@ -156,16 +190,23 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void getDashboardUsingUserName() throws Exception {
-		final Dashboard d1 = getDbDashboardsByUser(defaultUserName).iterator().next();		
-		asd.getDashboard(d1.getId(), new DashkuHandler<Dashboard>(){
-			@Override
-			public void handle(Dashboard d2) {				
-				testSet.add(d2);
-				asynchWaiter.get().countDown();
-			}
-		});
-		asynchWaiter.get().waitForLatch();
-		compareDashboards(d1, (Dashboard)testSet.iterator().next());
+		for(Map.Entry<String, AsynchDashku> entry: asds.entrySet()) {			
+			AsynchDashku asd = entry.getValue();
+			String apiKey = asd.getApiKey();
+			String userId = apiKey2userId.get(apiKey);
+			String userName = userId2userName.get(userId);
+			final Dashboard d1 = getDbDashboardsByUser(userName).iterator().next();		
+			asd.getDashboard(d1.getId(), new DashkuHandler<Dashboard>(){
+				@Override
+				public void handle(Dashboard d2) {				
+					testSet.add(d2);
+					asynchWaiter.get().countDown();
+				}
+			});
+			asynchWaiter.get().waitForLatch();
+			compareDashboards(d1, (Dashboard)testSet.iterator().next());
+			
+		}		
 	}
 	
 	

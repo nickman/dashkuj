@@ -28,12 +28,14 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.helios.dashkuj.api.AsynchDashku;
 import org.helios.dashkuj.api.Dashku;
+import org.helios.dashkuj.core.Dashkuj;
 import org.helios.dashkuj.domain.AbstractDashkuDomainObject;
 import org.helios.dashkuj.domain.DomainRepository;
 import org.helios.dashkuj.json.GsonFactory;
-import org.helios.dashkuj.redis.RedisListener;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +65,8 @@ public abstract class AbstractDashku implements Dashku {
 	protected final int port;
 	/** The dashku repository */
 	protected final DomainRepository repository;
+	/** Indicates if this dashku has been closed */
+	protected final AtomicBoolean closed = new AtomicBoolean(false);
 	
 	/** An http client */
 	protected final HttpClient client; 	
@@ -144,6 +148,29 @@ public abstract class AbstractDashku implements Dashku {
 	 */
 	protected HttpClientRequest completeRequest(Buffer body, HttpClientRequest request) {
 		return completeRequest(body, "application/json", request);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#dispose()
+	 */
+	public void dispose() {
+		if(closed.compareAndSet(false, true)) {
+			client.close();
+			if(this instanceof AsynchDashku) {
+				Dashkuj.getInstance().closeAsynchDashku(host, port);
+			} else {
+				Dashkuj.getInstance().closeSynchDashku(host, port);
+			}
+		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.Dashku#isClosed()
+	 */
+	public boolean isClosed() {
+		return closed.get();
 	}
 	
 	

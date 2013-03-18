@@ -24,6 +24,7 @@
  */
 package org.helios.dashkuj.api;
 
+import org.helios.dashkuj.core.Dashkuj;
 import org.helios.dashkuj.domain.Widget;
 
 
@@ -79,7 +80,18 @@ public interface Dashku {
 	 * @return the dashku api key
 	 */
 	public String getApiKey();
+
+	/**
+	 * Closes this dashku
+	 */
+	public void dispose();
 	
+	/**
+	 * Indicates if this dashku is closed
+	 * @return true if this dashku is closed, false if it is still open
+	 */
+	public boolean isClosed();
+
 
 
 	

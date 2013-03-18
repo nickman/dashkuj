@@ -33,12 +33,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.bson.types.ObjectId;
 import org.helios.dashkuj.json.GsonFactory;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.vertx.java.core.buffer.Buffer;
 
 import redis.clients.jedis.Jedis;
 
+import com.github.jmkgreen.morphia.Datastore;
+import com.github.jmkgreen.morphia.Morphia;
 import com.github.jmkgreen.morphia.annotations.Embedded;
 import com.github.jmkgreen.morphia.annotations.Entity;
 import com.github.jmkgreen.morphia.annotations.Id;
@@ -55,6 +58,7 @@ import com.google.gson.reflect.TypeToken;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
 /**
@@ -240,7 +244,7 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 					if(w==null) {
 						w = widget;
 						widgetsById.put(widget.id, widget);
-						return;
+						continue;
 					}
 				}
 			}
@@ -254,21 +258,45 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 	 */
 	@PostLoad
 	void indexWidgets() {
-		updateWidgets();
 		indexWidgets(null);
+		updateWidgets();
+		
 	}
 
 	
 
 	public static void main(String[] args) {
+		Jedis jedis = null;
+		Mongo mongo = null;
+		DBCursor cursor = null;
+		Morphia morphia = null;
+		Datastore mongoDs = null;
 		try {
-			Jedis jedis = new Jedis("dashku");
+			jedis = new Jedis("dashku");
 			Map<String, String> apiKeys = jedis.hgetAll("apiKeys");
 			log(apiKeys);
-			Mongo mongo = new Mongo("dashku");
+			mongo = new Mongo("dashku");
+			morphia = new Morphia();
+			mongoDs = morphia.createDatastore(mongo, "dashku_development");
 			DB db = mongo.getDB("dashku_development");
 			DBCollection dbColl = db.getCollection("users");
-			DBCursor cursor = dbColl.find();
+			cursor = dbColl.find();
+			while(cursor.hasNext()) {
+				DBObject dbo = cursor.next();
+				String apiKey = dbo.get("apiKey").toString();
+				String id = dbo.get("_id").toString();
+				String user = dbo.get("username").toString();
+				log("Inspecting user [" + user + "]");
+				if(!apiKeys.containsKey(apiKey)) {
+					jedis.hmset("apiKeys", Collections.singletonMap(apiKey, id));
+					log("Added missing redis entry [" + apiKey + "] for user [" + user + "]");
+				}
+			}
+			cursor.close();
+			Dashboard d = mongoDs.find(Dashboard.class, "_id", new ObjectId("5141e435b69129400b000057")).get();
+			log("Widgets:" + d.widgets.size());
+			log("Widgets:" + d.widgetsById.size());
+			
 //			CommandResult cr = db.command("serverStatus");
 //			Date date = cr.getDate("localTime");
 //			
@@ -279,6 +307,10 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 //			log("JS-Date:[" + jsDate + "]");
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
+		} finally {
+			if(jedis!=null) try { jedis.disconnect(); } catch (Exception ex) {}
+			if(cursor!=null) try { cursor.close(); } catch (Exception ex) {}
+			if(mongo!=null) try { mongo.close(); } catch (Exception ex) {}
 		}
 	}
 	

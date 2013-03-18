@@ -82,6 +82,31 @@ public class Dashkuj {
 	protected static Context cx = null;
 	protected static ScriptableObject scope = null;
 	
+	/**
+	 * Closes the specified synch dashku
+	 * @param host the host name of the dashku server
+	 * @param port the port of the dashku server
+	 */
+	public void closeSynchDashku(String host, int port) {
+		SynchDashku sd = synchDashkus.get(host + ":" + port);
+		if(sd!=null && !sd.isClosed()) {
+			sd.dispose();
+		}
+	}
+	
+	/**
+	 * Closes the specified asynch dashku
+	 * @param host the host name of the dashku server
+	 * @param port the port of the dashku server
+	 */
+	public void closeAsynchDashku(String host, int port) {
+		AsynchDashku asd = asynchDashkus.get(host + ":" + port);
+		if(asd!=null && !asd.isClosed()) {
+			asd.dispose();
+		}
+	}
+	
+	
 	public static void main(String[] args) {
 		log("Dashkuj test");
 		SynchDashku d = Dashkuj.getInstance().getSynchDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c4928", "dashku", 3000);

@@ -343,7 +343,7 @@ public class AsynchDashkuImpl extends AbstractDashku implements AsynchDashku {
 				public void handle(Void endEvent) {
 					if(log.isDebugEnabled()) {
 						log.debug("Calling endHandler:{} Bytes", content.length());
-						log.info("Response:[{}]", render(event, content));
+						log.debug("Response:[{}]", render(event, content));
 					}
 					try {
 						if(Status.containsStatus(content)) {
