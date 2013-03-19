@@ -117,6 +117,7 @@ public class SynchronousDashkuTestCase extends BaseTest {
 				Dashboard d1 = diter.next();		
 				Dashboard d2 = sd.getDashboard(d1.getId());
 				compareDashboards(d1, d2);	
+				compareDashboards(d1, repo.getDashboard(d1.getId()));
 			}
 		}
 	}

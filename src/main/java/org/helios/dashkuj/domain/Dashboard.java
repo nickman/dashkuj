@@ -293,9 +293,6 @@ public class Dashboard extends  AbstractDashkuDomainObject {
 				}
 			}
 			cursor.close();
-			Dashboard d = mongoDs.find(Dashboard.class, "_id", new ObjectId("5141e435b69129400b000057")).get();
-			log("Widgets:" + d.widgets.size());
-			log("Widgets:" + d.widgetsById.size());
 			
 //			CommandResult cr = db.command("serverStatus");
 //			Date date = cr.getDate("localTime");
