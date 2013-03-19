@@ -107,6 +107,8 @@ public class Dashkuj {
 	}
 	
 	
+	
+	
 	public static void main(String[] args) {
 		log("Dashkuj test");
 		SynchDashku d = Dashkuj.getInstance().getSynchDashku("dfb6c8d9-58bc-42e1-b6df-3c587c9c4928", "dashku", 3000);

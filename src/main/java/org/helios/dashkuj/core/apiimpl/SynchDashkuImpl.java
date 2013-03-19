@@ -315,6 +315,9 @@ public class SynchDashkuImpl extends AbstractDashku implements SynchDashku {
 	public String createDashboard(Dashboard dashboard) {
 		log.debug("Calling createDashboard()");
 		SynchronousResponse<Dashboard> responder = newSynchronousResponse(Dashboard.DASHBOARD_TYPE.getType(), Dashboard.DASHBOARD_UNMARSHALLER);
+		if(log.isDebugEnabled()) {
+			log.debug("createDashboard POST [\n{}\n]", String.format(URI_POST_CREATE_DASHBOARD, apiKey));
+		}
 		completeRequest(buildDirtyUpdatePostJSON(dashboard), client.post(String.format(URI_POST_CREATE_DASHBOARD, apiKey), responder));					
 		return repository.synch(dashboard.updateFrom(responder.getResponse())).getId();
 	}

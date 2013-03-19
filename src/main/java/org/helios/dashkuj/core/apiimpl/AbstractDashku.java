@@ -263,7 +263,11 @@ public abstract class AbstractDashku implements Dashku {
 		for(String dirtyFieldName: domainObject.getDirtyFieldNames()) {
 			diffs.add(dirtyFieldName, jsonDomainObject.get(dirtyFieldName));
 		}
-		return new Buffer(diffs.toString(), "UTF-8");
+		Buffer post = new Buffer(diffs.toString(), "UTF-8");
+		if(log.isDebugEnabled()) {
+			log.debug("JSON Post Data [\n{}\n]", post.toString("UTF-8"));
+		}
+		return post;
 	}
 	
 	/**

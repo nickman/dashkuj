@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 
 import junit.framework.Assert;
 
@@ -35,6 +36,7 @@ import org.helios.dashkuj.api.SynchDashku;
 import org.helios.dashkuj.core.apiimpl.SynchDashkuImpl;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainRepository;
+import org.helios.dashkuj.domain.ScreenWidth;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -143,5 +145,36 @@ public class SynchronousDashkuTestCase extends BaseTest {
 		}
 	}
 	
+	/**
+	 * Creates a new dashboard, then verifies it can be retrieved as expected
+	 */
+	@Test
+	public void createDashboard() {
+		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {			
+			SynchDashku sd = entry.getValue();
+			//String apiKey = sd.getApiKey();
+			Dashboard newDash = new Dashboard();
+			final UUID uid = UUID.randomUUID();
+			//final int screenWidth = Math.abs(RANDOM.nextInt(1000));
+			newDash.setCss("<!-- " + uid + " -->" );
+			newDash.setName(uid.toString());
+			newDash.setScreenWidth(ScreenWidth.fluid);
+			final String dashboardId = sd.createDashboard(newDash);
+			Dashboard d1 = sd.getDashboard(dashboardId);
+			Dashboard d2 = getDbDashboard(dashboardId);
+			compareDashboards(d1, d2);	
+			sd.deleteDashboard(dashboardId);
+			//newDash.setScreenWidth(uid.)
+		}
+		
+	}
+	
+	/**
+	 * Issues an update on the dashboard, adding neutral text to test for
+	 */
+	@Test
+	public void updateDashboard() {
+		/* No Op */
+	}
 	
 }

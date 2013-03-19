@@ -27,6 +27,7 @@ package test.org.helios.dashkuj;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import junit.framework.Assert;
 
@@ -65,6 +66,9 @@ public class BaseTest {
 	protected static int defaultDashkuPort = 3000;
 	/** The default mongo database name */
 	protected static String defaultDbName = "dashku_development";
+	
+	/** For generating random values */
+	protected static Random RANDOM = new Random(System.currentTimeMillis());
 	
 	/** A map of user names keyed by apiKey */
 	protected static final Map<String, String> apiKey2userId = new HashMap<String, String>();
