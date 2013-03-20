@@ -30,6 +30,8 @@ import java.util.Collection;
 import org.helios.dashkuj.api.AsynchDashku;
 import org.helios.dashkuj.api.Dashku;
 import org.helios.dashkuj.api.DashkuHandler;
+import org.helios.dashkuj.api.SynchDashku;
+import org.helios.dashkuj.core.Dashkuj;
 import org.helios.dashkuj.core.apiimpl.SynchDashkuImpl.SynchronousResponse;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainUnmarshaller;
@@ -63,6 +65,15 @@ public class AsynchDashkuImpl extends AbstractDashku implements AsynchDashku {
 	 */
 	public AsynchDashkuImpl(HttpClient client, String apiKey, String host, int port) {
 		super(client, apiKey, host, port);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.AsynchDashku#getSynchDashku()
+	 */
+	@Override
+	public SynchDashku getSynchDashku() {
+		return Dashkuj.getInstance().getSynchDashku(apiKey, host, port);
 	}
 	
 	// ========================================

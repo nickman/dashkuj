@@ -146,25 +146,38 @@ public class SynchronousDashkuTestCase extends BaseTest {
 	}
 	
 	/**
-	 * Creates a new dashboard, then verifies it can be retrieved as expected
+	 * Creates a new dashboard, then verifies it can be retrieved as expected.
+	 * Incidentally tests deletion in that if the delete fails, the test will fail.
 	 */
 	@Test
 	public void createDashboard() {
 		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {			
 			SynchDashku sd = entry.getValue();
-			//String apiKey = sd.getApiKey();
 			Dashboard newDash = new Dashboard();
 			final UUID uid = UUID.randomUUID();
-			//final int screenWidth = Math.abs(RANDOM.nextInt(1000));
-			newDash.setCss("<!-- " + uid + " -->" );
+			final String css = "<!-- " + uid + " -->" ; 
+			newDash.setCss(css);
 			newDash.setName(uid.toString());
 			newDash.setScreenWidth(ScreenWidth.fluid);
 			final String dashboardId = sd.createDashboard(newDash);
-			Dashboard d1 = sd.getDashboard(dashboardId);
-			Dashboard d2 = getDbDashboard(dashboardId);
-			compareDashboards(d1, d2);	
-			sd.deleteDashboard(dashboardId);
-			//newDash.setScreenWidth(uid.)
+			try {
+				Dashboard d1 = sd.getDashboard(dashboardId);
+				// ====================================================
+				// Logged defect with dashku. These don't work
+				// FIXME: https://github.com/Anephenix/dashku/issues/16
+				// ====================================================
+				/*
+				Assert.assertEquals("CSS was not the expected [" + css + "]", css, d1.getCss());
+				Assert.assertEquals("Screen width was not the expected [" + ScreenWidth.fluid + "]", ScreenWidth.fluid.name(), d1.getScreenWidth());				
+				*/
+				// ====================================================
+
+				Assert.assertEquals("Dashboard name was not the expected [" + uid.toString() + "]", uid.toString(), d1.getName());
+				Dashboard d2 = getDbDashboard(dashboardId);
+				compareDashboards(d1, d2);
+			} finally {
+				sd.deleteDashboard(dashboardId);
+			}
 		}
 		
 	}
@@ -174,7 +187,39 @@ public class SynchronousDashkuTestCase extends BaseTest {
 	 */
 	@Test
 	public void updateDashboard() {
-		/* No Op */
+		for(Map.Entry<String, SynchDashku> entry: sds.entrySet()) {
+			SynchDashku sd = entry.getValue();
+			Dashboard newDash = new Dashboard();
+			final UUID uid = UUID.randomUUID();
+			final String css = "<!-- " + uid + " -->" ;
+			final String name = uid.toString();
+			final String updatedName = new StringBuilder(name).reverse().toString();
+			// unlikely but.....
+			Assert.assertNotSame("The reverse of a UID name was same as UID !!", name, updatedName);
+			newDash.setName(name);
+			final String dashboardId = sd.createDashboard(newDash);
+			try {
+				Dashboard d1 = sd.getDashboard(dashboardId);
+				Assert.assertNotSame("The css should not be the post-update value", d1.getCss(), css);
+				Assert.assertNotSame("The name should not be the post-update value", d1.getName(), name);
+				Assert.assertNotSame("The screenwidth should not be the post-update value", d1.getScreenWidth(), ScreenWidth.fluid.name());
+				Dashboard d2 = getDbDashboard(dashboardId);
+				compareDashboards(d1, d2);				
+				d1.setName(updatedName);
+				d1.setCss(css);
+				d1.setScreenWidth(ScreenWidth.fluid);
+				sd.updateDashboard(d1);
+				Assert.assertEquals("The css was not the post-update value", css, d1.getCss());
+				Assert.assertEquals("The screen width was not the post-update value", ScreenWidth.fluid.name(), d1.getScreenWidth());
+				Assert.assertEquals("The name was not the post-update value", updatedName, d1.getName());
+				
+				d2 = getDbDashboard(dashboardId);
+				compareDashboards(d1, d2);				
+			} finally {
+				sd.deleteDashboard(dashboardId);
+			}
+		}
+		
 	}
 	
 }

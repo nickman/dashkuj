@@ -131,6 +131,7 @@ public class BaseTest {
 	 */
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
+		Dashkuj.getInstance().synchRedisApiKeys("dashku");
 		if(mongoDs==null) {
 			mongo = new Mongo(defaultDashkuHost);
 			morphia = new Morphia();

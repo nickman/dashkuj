@@ -26,6 +26,7 @@ package org.helios.dashkuj.core;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,10 +39,19 @@ import org.helios.dashkuj.util.URLHelper;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.ScriptableObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Vertx;
+
+import redis.clients.jedis.Jedis;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.Mongo;
 
 /**
  * <p>Title: Dashkuj</p>
@@ -56,6 +66,13 @@ public class Dashkuj {
 	private static volatile Dashkuj instance = null;
 	/** The singleton instance ctor lock*/
 	private static final Object lock = new Object();
+	/** A cache of synch dashkus keyed by <b><code>host:port</code></b> */
+	protected final Map<String, SynchDashku> synchDashkus = new ConcurrentHashMap<String, SynchDashku>();
+	/** A cache of asynch dashkus keyed by <b><code>host:port</code></b> */
+	protected final Map<String, AsynchDashku> asynchDashkus = new ConcurrentHashMap<String, AsynchDashku>();
+	
+	/** Insance logger */
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
 	/** The managing vertx */
 	protected final Vertx vertx = Vertx.newVertx();
@@ -105,8 +122,57 @@ public class Dashkuj {
 			asd.dispose();
 		}
 	}
+	/**
+	 * Synchronizes the api keys from mongoDB to redis for cases when redis loses them.
+	 * Assumes mongo and redis are on the dashku host and listening on the default ports.
+	 * @param host The dashku host
+	 * FIXME: Need to support credentials
+	 */
+	public void synchRedisApiKeys(String host) {
+		synchRedisApiKeys(host, 6379, host, 27017);
+	}
 	
-	
+	/**
+	 * Synchronizes the api keys from mongoDB to redis for cases when redis loses them
+	 * @param redisHost The redis host
+	 * @param redisPort The redis port
+	 * @param mongoHost The mongodb host
+	 * @param mongoPort The mongodb port
+	 * FIXME:  Need to support credentials
+	 */
+	public void synchRedisApiKeys(String redisHost, int redisPort, String mongoHost, int mongoPort) {
+		Mongo mongo = null;
+		DBCursor cursor = null;
+		Jedis jedis = null;
+		try {			
+			mongo = new Mongo(mongoHost, mongoPort);
+			jedis = new Jedis(redisHost, redisPort);
+			log.info("Synchronizing APIKeys between mongo [{}:{}] and redis [{}:{}]", mongoHost, mongoPort, redisHost, redisPort);
+			Map<String, String> apiKeys = jedis.hgetAll("apiKeys");
+			DB db = mongo.getDB("dashku_development");
+			DBCollection dbColl = db.getCollection("users");
+			cursor = dbColl.find();
+			while(cursor.hasNext()) {
+				DBObject dbo = cursor.next();
+				String apiKey = dbo.get("apiKey").toString();
+				String id = dbo.get("_id").toString();
+				String user = dbo.get("username").toString();
+				log.debug("Inspecting user [" + user + "]");
+				if(!apiKeys.containsKey(apiKey)) {
+					jedis.hmset("apiKeys", Collections.singletonMap(apiKey, id));
+					log.info("Added missing redis entry [" + apiKey + "] for user [" + user + "]");
+				}
+			}
+			log.info("Redis Synch Complete");
+		} catch (Exception ex) {
+			log.error("Redis Synch Failed", ex);
+			throw new RuntimeException("Redis Synch Failed", ex);
+		} finally {
+			if(cursor!=null) try { cursor.close(); } catch (Exception e) {}
+			if(mongo!=null) try { mongo.close(); } catch (Exception e) {}
+			if(jedis!=null) try { jedis.disconnect(); } catch (Exception e) {}
+		}
+	}
 	
 	
 	public static void main(String[] args) {
@@ -326,10 +392,6 @@ public class Dashkuj {
 		// TODO Auto-generated constructor stub
 	}
 	
-	/** A cache of synch dashkus keyed by <b><code>host:port</code></b> */
-	protected final Map<String, SynchDashku> synchDashkus = new ConcurrentHashMap<String, SynchDashku>();
-	/** A cache of asynch dashkus keyed by <b><code>host:port</code></b> */
-	protected final Map<String, AsynchDashku> asynchDashkus = new ConcurrentHashMap<String, AsynchDashku>();
 	
 	
 	/**

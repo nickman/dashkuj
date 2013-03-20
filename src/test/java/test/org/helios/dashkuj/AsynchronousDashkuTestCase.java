@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,9 +38,11 @@ import junit.framework.Assert;
 
 import org.helios.dashkuj.api.AsynchDashku;
 import org.helios.dashkuj.api.DashkuHandler;
+import org.helios.dashkuj.api.SynchDashku;
 import org.helios.dashkuj.core.apiimpl.AsynchDashkuImpl;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainRepository;
+import org.helios.dashkuj.domain.ScreenWidth;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -204,10 +207,113 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 				}
 			});
 			asynchWaiter.get().waitForLatch();
-			compareDashboards(d1, (Dashboard)testSet.iterator().next());
-			
+			compareDashboards(d1, (Dashboard)testSet.iterator().next());			
 		}		
 	}
+	
+	/**
+	 * Creates a new dashboard, then verifies it can be retrieved as expected.
+	 * Incidentally tests deletion in that if the delete fails, the test will fail.
+	 * @throws Exception thrown on any errors
+	 */
+	@Test
+	public void createDashboard() throws Exception {
+		for(Map.Entry<String, AsynchDashku> entry: asds.entrySet()) {			
+			AsynchDashku asd = entry.getValue();
+			Dashboard newDash = new Dashboard();
+			final UUID uid = UUID.randomUUID();
+			final String css = "<!-- " + uid + " -->" ; 
+			newDash.setCss(css);
+			newDash.setName(uid.toString());
+			newDash.setScreenWidth(ScreenWidth.fluid);
+			asd.createDashboard(newDash, new DashkuHandler<Dashboard>(){
+				@Override
+				public void handle(Dashboard d2) {				
+					testSet.add(d2);
+					asynchWaiter.get().countDown();
+				}
+			});
+			asynchWaiter.get().waitForLatch();
+			Dashboard d1 = (Dashboard)testSet.iterator().next();
+			final String dashboardId = d1.getId();
+			try {
+				// ====================================================
+				// Logged defect with dashku. These don't work
+				// FIXME: https://github.com/Anephenix/dashku/issues/16
+				// ====================================================
+				/*
+				Assert.assertEquals("CSS was not the expected [" + css + "]", css, d1.getCss());
+				Assert.assertEquals("Screen width was not the expected [" + ScreenWidth.fluid + "]", ScreenWidth.fluid.name(), d1.getScreenWidth());				
+				*/
+				// ====================================================
+				Assert.assertEquals("Dashboard name was not the expected [" + uid.toString() + "]", uid.toString(), d1.getName());
+				Dashboard d2 = getDbDashboard(d1.getId());
+				compareDashboards(d1, d2);
+			} finally {
+				asd.getSynchDashku().deleteDashboard(dashboardId);				
+			}
+		}
+		
+	}
+	
+	/**
+	 * Issues an update on the dashboard, adding neutral text to test for
+	 * @throws Exception thrown on any error 
+	 */
+	@Test
+	public void updateDashboard() throws Exception {
+		for(Map.Entry<String, AsynchDashku> entry: asds.entrySet()) {			
+			AsynchDashku asd = entry.getValue();
+			Dashboard newDash = new Dashboard();
+			final UUID uid = UUID.randomUUID();
+			final String css = "<!-- " + uid + " -->" ;
+			final String name = uid.toString();
+			final String updatedName = new StringBuilder(name).reverse().toString();
+			// unlikely but.....
+			Assert.assertNotSame("The reverse of a UID name was same as UID !!", name, updatedName);
+			newDash.setName(name);
+			asd.createDashboard(newDash, new DashkuHandler<Dashboard>(){
+				@Override
+				public void handle(Dashboard d2) {				
+					testSet.add(d2);
+					asynchWaiter.get().countDown();
+				}
+			});
+			asynchWaiter.get().waitForLatch();
+			Dashboard d1 = (Dashboard)testSet.iterator().next();
+			final String dashboardId = d1.getId();
+			try {				
+				Assert.assertNotSame("The css should not be the post-update value", d1.getCss(), css);
+				Assert.assertNotSame("The name should not be the post-update value", d1.getName(), name);
+				Assert.assertNotSame("The screenwidth should not be the post-update value", d1.getScreenWidth(), ScreenWidth.fluid.name());
+				Dashboard d2 = getDbDashboard(dashboardId);
+				compareDashboards(d1, d2);				
+				d1.setName(updatedName);
+				d1.setCss(css);
+				d1.setScreenWidth(ScreenWidth.fluid);
+				testSet.clear();
+				asynchWaiter.set(new AsynchWaiter());
+				asd.updateDashboard(d1, new DashkuHandler<Dashboard>(){
+					@Override
+					public void handle(Dashboard d2) {				
+						testSet.add(d2);
+						asynchWaiter.get().countDown();
+					}
+				});
+				asynchWaiter.get().waitForLatch();
+				Assert.assertEquals("The css was not the post-update value", css, d1.getCss());
+				Assert.assertEquals("The screen width was not the post-update value", ScreenWidth.fluid.name(), d1.getScreenWidth());
+				Assert.assertEquals("The name was not the post-update value", updatedName, d1.getName());
+				
+				d2 = getDbDashboard(dashboardId);
+				compareDashboards(d1, d2);				
+			} finally {
+				asd.getSynchDashku().deleteDashboard(dashboardId);
+			}
+		}
+		
+	}
+	
 	
 	
 	

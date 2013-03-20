@@ -33,7 +33,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.helios.dashkuj.api.AsynchDashku;
 import org.helios.dashkuj.api.SynchDashku;
+import org.helios.dashkuj.core.Dashkuj;
 import org.helios.dashkuj.domain.Dashboard;
 import org.helios.dashkuj.domain.DomainUnmarshaller;
 import org.helios.dashkuj.domain.Resource;
@@ -66,6 +68,15 @@ public class SynchDashkuImpl extends AbstractDashku implements SynchDashku {
 	 */
 	public SynchDashkuImpl(HttpClient client, String apiKey, String host, int port) {
 		super(client, apiKey, host, port);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see org.helios.dashkuj.api.SynchDashku#getAsynchDashku()
+	 */
+	@Override
+	public AsynchDashku getAsynchDashku() {
+		return Dashkuj.getInstance().getAsynchDashku(apiKey, host, port);
 	}
 
 	/**

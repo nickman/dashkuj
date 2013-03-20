@@ -48,6 +48,12 @@ import org.helios.dashkuj.domain.Widget;
 public interface AsynchDashku extends Dashku {
 	
 	/**
+	 * Returns a synchronous instance of this dashku
+	 * @return a synchronous instance of this dashku
+	 */
+	public SynchDashku getSynchDashku();
+	
+	/**
 	 * Retrieves all of the dashboards associated with the set Dashku API key
 	 * @param handler the response listener
 	 * @param errorHandler The error handler
