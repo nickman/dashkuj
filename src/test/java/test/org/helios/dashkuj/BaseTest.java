@@ -40,6 +40,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.github.jmkgreen.morphia.Datastore;
@@ -281,5 +282,13 @@ public class BaseTest {
 /*		Assert.assertEquals("The Created Times were not equal", w1.getCreated(), w2.getCreated());
 		Assert.assertEquals("The Last Updated Times were not equal", w1.getLastUpdated(), w2.getLastUpdated());		
 */		
+	}
+	
+	/**
+	 * Empty test so this base class does not fail
+	 */
+	@Test
+	public void nopTest() {
+		/* Empty Test */
 	}
 }
