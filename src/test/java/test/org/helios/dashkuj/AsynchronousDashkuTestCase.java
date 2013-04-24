@@ -237,16 +237,9 @@ public class AsynchronousDashkuTestCase extends BaseTest {
 			Dashboard d1 = (Dashboard)testSet.iterator().next();
 			final String dashboardId = d1.getId();
 			try {
-				// ====================================================
-				// Logged defect with dashku. These don't work
-				// FIXME: https://github.com/Anephenix/dashku/issues/16
-				// ====================================================
-				/*
 				Assert.assertEquals("CSS was not the expected [" + css + "]", css, d1.getCss());
-				Assert.assertEquals("Screen width was not the expected [" + ScreenWidth.fluid + "]", ScreenWidth.fluid.name(), d1.getScreenWidth());				
-				*/
-				// ====================================================
-				Assert.assertEquals("Dashboard name was not the expected [" + uid.toString() + "]", uid.toString(), d1.getName());
+				Assert.assertEquals("Screen width was not the expected.\nDo you have patch for https://github.com/Anephenix/dashku/issues/16 ? [" + ScreenWidth.fluid + "]", ScreenWidth.fluid.name(), d1.getScreenWidth());				
+				Assert.assertEquals("Dashboard name was not the expected.\nDo you have patch for https://github.com/Anephenix/dashku/issues/16 ? [" + uid.toString() + "]", uid.toString(), d1.getName());
 				Dashboard d2 = getDbDashboard(d1.getId());
 				compareDashboards(d1, d2);
 			} finally {
